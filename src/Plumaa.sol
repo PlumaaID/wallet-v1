@@ -42,7 +42,7 @@ contract Plumaa is RSAOwnerManager {
         bytes modulus;
     }
 
-    bytes32 internal constant TRANSACTION_REQUEST_TYPEHASH =
+    bytes32 internal constant _TRANSACTION_REQUEST_TYPEHASH =
         keccak256(
             "TransactionRequest(address to,uint256 value,uint8 operation,uint48 deadline,bytes data,uint256 nonce)"
         );
@@ -111,7 +111,7 @@ contract Plumaa is RSAOwnerManager {
         bytes32 typehash = _hashTypedDataV4(
             keccak256(
                 abi.encode(
-                    TRANSACTION_REQUEST_TYPEHASH,
+                    _TRANSACTION_REQUEST_TYPEHASH,
                     request.to,
                     request.value,
                     request.operation,

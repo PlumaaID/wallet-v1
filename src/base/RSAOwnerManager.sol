@@ -3,7 +3,7 @@
 pragma solidity ^0.8.20;
 
 import {SelfAuthorized} from "@safe/contracts/common/SelfAuthorized.sol";
-import {RsaVerify} from "SolRsaVerify/RsaVerify.sol";
+import {RsaVerify} from "../utils/RsaVerify.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 
 /**
@@ -46,7 +46,7 @@ abstract contract RSAOwnerManager is SelfAuthorized, EIP712Upgradeable {
 
     /// @notice Internal version of {setOwner} without access control.
     function _setOwner(bytes memory exponent, bytes memory modulus) internal {
-        _getRSAOwnerManagerStorage().owner = toPublicKeyId(modulus, exponent);
+        _getRSAOwnerManagerStorage().owner = toPublicKeyId(exponent, modulus);
     }
 
     /// @notice On the absense of a proper public key, we identify each RSA owner by a keccak256(modulus, exponent).
