@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Enum} from "@safe/contracts/common/Enum.sol";
-import {Plumaa} from "../../src/Plumaa.sol";
+import {Plumaa} from "~/Plumaa.sol";
 
 struct TransactionRequest {
     address to;
@@ -36,9 +36,9 @@ contract PlumaaMock is Plumaa {
 
 contract SafeMock {
     event ExecutedWith(
-        address to,
-        uint256 value,
-        bytes data,
+        address indexed to,
+        uint256 indexed value,
+        bytes indexed data,
         Enum.Operation operation
     );
 
