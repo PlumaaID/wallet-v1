@@ -57,8 +57,7 @@ contract Plumaa is RSAOwnerManager {
         bytes memory exponent,
         bytes memory modulus
     ) public initializer {
-        __RSAOwnerManager_init();
-        _setOwner(exponent, modulus);
+        __RSAOwnerManager_init(exponent, modulus);
     }
 
     /// @notice Executes a transaction from a Safe{Wallet} Smart Account using an RSA PKCS1.5 signature
@@ -74,7 +73,7 @@ contract Plumaa is RSAOwnerManager {
 
         uint256 nonce = useOwnerNonce();
 
-        (bytes32 sha256Digest, bool valid) = verifyRSAOwnerRequest(
+        (bool valid, bytes32 sha256Digest) = verifyRSAOwnerRequest(
             request,
             nonce
         );
@@ -102,12 +101,12 @@ contract Plumaa is RSAOwnerManager {
 
     /// @notice Checks if the SHA256 digest of a transaction request {_hashTypedDataV4} value is signed by the RSA owner.
     /// @param request The transaction request
-    /// @return digest The transaction request digest
     /// @return valid True if the transaction request is signed by the RSA owner
+    /// @return digest The transaction request digest
     function verifyRSAOwnerRequest(
         TransactionRequestData calldata request,
         uint256 nonce
-    ) internal view virtual returns (bytes32 digest, bool valid) {
+    ) public view virtual returns (bool valid, bytes32 digest) {
         bytes32 typehash = _hashTypedDataV4(
             keccak256(
                 abi.encode(
@@ -126,13 +125,13 @@ contract Plumaa is RSAOwnerManager {
         bytes32 sha256Digest = sha256(abi.encodePacked(typehash));
 
         return (
-            sha256Digest,
             verifyRSAOwner(
                 sha256Digest,
                 request.signature,
                 request.exponent,
                 request.modulus
-            )
+            ),
+            sha256Digest
         );
     }
 }

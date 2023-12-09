@@ -30,7 +30,11 @@ abstract contract RSAOwnerManager is SelfAuthorized, EIP712Upgradeable {
     }
 
     /// @notice Sets the initial storage of the contract.
-    function __RSAOwnerManager_init() internal onlyInitializing {
+    function __RSAOwnerManager_init(
+        bytes memory exponent,
+        bytes memory modulus
+    ) internal onlyInitializing {
+        _setOwner(exponent, modulus);
         __EIP712_init_unchained("RSAOwner", "1");
     }
 
