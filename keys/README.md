@@ -1,6 +1,6 @@
 ## Plumaa Keys
 
-This directory contains the keys for the accounts used in Plumaa tests. Each subfolder requires to be filled with a `private.pem` and `public.pem` file, which can be obtained from [the oficial SAT website](http://omawww.sat.gob.mx/tramitesyservicios/Paginas/certificado_sello_digital.htm) since they provide tests certificates and keys for developers.
+This directory contains the keys for the accounts used in Plumaa tests. Each subfolder requires to be filled with a `private.pem` and `public.pem` file, which can be obtained from the test certificates provided by [the oficial SAT website](http://omawww.sat.gob.mx/tramitesyservicios/Paginas/certificado_sello_digital.htm), also included within each subfolder for convenience.
 
 The characteristics of these certificates are well outlined in [this external documentation.](https://go.reachcore.com/docs/Articulos/CSDPruebas).
 
