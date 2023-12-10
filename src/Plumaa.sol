@@ -12,7 +12,7 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
     event ExecutedRSATransaction(
         address indexed wallet,
         bytes32 indexed sha256Digest,
-        uint256 nonce,
+        uint32 nonce,
         bool success
     );
 
@@ -45,7 +45,7 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
 
     bytes32 internal constant _TRANSACTION_REQUEST_TYPEHASH =
         keccak256(
-            "TransactionRequest(address to,uint256 value,uint8 operation,uint48 deadline,bytes data,uint256 nonce)"
+            "TransactionRequest(address to,uint256 value,uint8 operation,uint48 deadline,bytes data,uint32 nonce)"
         );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -73,7 +73,7 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
             revert ExpiredRSATransaction(request.deadline);
         }
 
-        uint256 currentNonce = _useOwnerNonce();
+        uint32 currentNonce = _useOwnerNonce();
 
         (bool valid, bytes32 sha256Digest) = verifyRSAOwnerRequest(
             request,
@@ -113,7 +113,7 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
     /// @return digest The transaction request digest
     function verifyRSAOwnerRequest(
         TransactionRequestData calldata request,
-        uint256 currentNonce
+        uint32 currentNonce
     ) public view virtual returns (bool valid, bytes32 digest) {
         bytes32 typehash = _hashTypedDataV4(
             keccak256(

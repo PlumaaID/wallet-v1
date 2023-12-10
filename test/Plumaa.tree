@@ -1,4 +1,7 @@
 PlumaaTest
+├── when initialized
+│   └── it should set the owner and nonce
+│      └── because the contract is initialized
 ├── when calling verifyRSAOwnerRequest
 │   ├── given a tampered verifying to
 │   │   └── it should return false

@@ -43,7 +43,7 @@ abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
     }
 
     /// @notice Returns the current nonce of the Plumaa.
-    function nonce() public view returns (uint256) {
+    function nonce() public view returns (uint32) {
         return _getRSAOwnerManagerStorage().nonce;
     }
 
@@ -94,7 +94,7 @@ abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
 
     /// @notice Consumes a nonce.
     /// Returns the current value and increments nonce.
-    function _useOwnerNonce() internal virtual returns (uint256) {
+    function _useOwnerNonce() internal virtual returns (uint32) {
         unchecked {
             // It is important to do x++ and not ++x here.
             return _getRSAOwnerManagerStorage().nonce++;

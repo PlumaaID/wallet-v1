@@ -10,7 +10,7 @@ struct TransactionRequest {
     Enum.Operation operation;
     uint48 deadline;
     bytes data;
-    uint256 nonce;
+    uint32 nonce;
 }
 
 contract PlumaaMock is Plumaa {
@@ -31,6 +31,22 @@ contract PlumaaMock is Plumaa {
                     )
                 )
             );
+    }
+
+    /// @notice Unsafely overrides the nonce
+    function unsafeSetNonce(uint32 newNonce) external {
+        _storage().nonce = newNonce;
+    }
+
+    /// @notice Get EIP-7201 storage
+    function _storage()
+        private
+        pure
+        returns (RSAOwnerManagerStorage storage $)
+    {
+        assembly {
+            $.slot := RSAOwnerManagerStorageLocation
+        }
     }
 }
 

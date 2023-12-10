@@ -56,7 +56,7 @@ contract BaseTest is Test {
         Enum.Operation operation,
         uint48 deadline,
         bytes memory data,
-        uint256 nonce
+        uint32 nonce
     )
         internal
         returns (Plumaa.TransactionRequestData memory, bytes32 structHash)
@@ -94,7 +94,7 @@ contract BaseTest is Test {
         Enum.Operation operation,
         uint48 deadline,
         bytes memory data,
-        uint256 nonce
+        uint32 nonce
     ) internal view returns (bytes32 digest) {
         TransactionRequest memory request = TransactionRequest({
             to: to,

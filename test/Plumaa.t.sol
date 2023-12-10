@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {BaseTest} from "./Base.sol";
+import {BaseTest} from "./Base.t.sol";
 import {RSASigner} from "./utils/RSASigner.sol";
 import {Enum} from "@safe/contracts/common/Enum.sol";
 import {SafeMock} from "./mocks/Mocks.sol";
@@ -16,7 +16,7 @@ contract PlumaaTest is BaseTest {
     Enum.Operation private _defaultOperation;
     uint48 private _defaultDeadline;
     bytes private _defaultData;
-    uint256 private _defaultNonce;
+    uint32 private _defaultNonce;
 
     /// @notice Set default values for request arguments
     function setUp() public override {
@@ -27,6 +27,16 @@ contract PlumaaTest is BaseTest {
         _defaultDeadline = uint48(block.timestamp) + 1;
         _defaultData = "";
         _defaultNonce = 0;
+    }
+
+    /// @notice it should be initialized
+    function test_WhenInitialized() external {
+        RSASigner.PublicKey memory ownerPublicKey = owner.publicKey();
+        bytes32 publicKeyId = keccak256(
+            abi.encodePacked(ownerPublicKey.exponent, ownerPublicKey.modulus)
+        );
+        assertEq(plumaa.owner(), publicKeyId);
+        assertEq(plumaa.nonce(), 0);
     }
 
     modifier whenCallingVerifyRSAOwnerRequest() {
@@ -150,7 +160,7 @@ contract PlumaaTest is BaseTest {
 
     /// @notice it should return false because the calculated digest doesn't match the signed struct hash
     function test_GivenAnInvalidVerifyingNonce(
-        uint256 nonce
+        uint32 nonce
     ) external whenCallingVerifyRSAOwnerRequest {
         vm.assume(nonce != _defaultNonce);
 
@@ -195,7 +205,7 @@ contract PlumaaTest is BaseTest {
         uint48 deadline,
         uint8 operation,
         bytes memory data,
-        uint256 nonce
+        uint32 nonce
     ) external whenCallingVerifyRSAOwnerRequest {
         operation = uint8(bound(operation, 0, uint8(type(Enum.Operation).max)));
 
@@ -228,7 +238,7 @@ contract PlumaaTest is BaseTest {
         uint48 deadline,
         uint8 operation,
         bytes memory data,
-        uint256 nonce
+        uint32 nonce
     ) external whenCallingVerifyRSAOwnerRequest {
         operation = uint8(bound(operation, 0, uint8(type(Enum.Operation).max)));
 
@@ -472,7 +482,7 @@ contract PlumaaTest is BaseTest {
 
     /// @notice it should revert because the calculated digest doesn't match the signed struct hash
     function test_GivenAnInvalidExecutingNonce(
-        uint256 nonce
+        uint32 nonce
     ) external whenCallingExecuteTransaction givenAValidRequest {
         vm.assume(nonce != _defaultNonce);
 
@@ -557,17 +567,22 @@ contract PlumaaTest is BaseTest {
     function test_GivenAValidExecutingOwner(
         uint256 value,
         bytes calldata data,
-        uint48 expiresAfter
+        uint48 expiresAfter,
+        uint32 currentNonce
     ) external whenCallingExecuteTransaction givenAValidRequest {
+        currentNonce = uint32(bound(currentNonce, 0, type(uint32).max - 1));
+
         // Not expired already
         vm.assume(expiresAfter > 0);
 
         // Avoid deadline overflow
         vm.assume(block.timestamp + expiresAfter <= type(uint48).max);
 
+        plumaa.unsafeSetNonce(currentNonce);
+
         (
             Plumaa.TransactionRequestData memory requestData,
-
+            bytes32 structHash
         ) = _forgeRequestData(
                 owner,
                 address(receiver),
@@ -575,7 +590,7 @@ contract PlumaaTest is BaseTest {
                 Enum.Operation.Call,
                 uint48(block.timestamp) + expiresAfter,
                 data,
-                0
+                currentNonce
             );
 
         vm.expectEmit(true, true, true, true);
@@ -585,11 +600,19 @@ contract PlumaaTest is BaseTest {
             data,
             Enum.Operation.Call
         );
+        vm.expectEmit(true, true, true, true);
+        emit Plumaa.ExecutedRSATransaction(
+            address(wallet),
+            _toDigest(structHash),
+            currentNonce,
+            true
+        );
         bool success = plumaa.executeTransaction(
             payable(address(wallet)),
             requestData
         );
         assertTrue(success, "Plumaa: transaction failed");
+        assertEq(currentNonce + 1, plumaa.nonce());
     }
 
     /// @notice Returns the default request data.
