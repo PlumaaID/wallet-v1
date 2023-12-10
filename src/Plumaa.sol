@@ -4,13 +4,14 @@ pragma solidity ^0.8.20;
 import {Enum} from "@safe/contracts/common/Enum.sol";
 import {Safe} from "@safe/contracts/Safe.sol";
 import {RSAOwnerManager} from "./base/RSAOwnerManager.sol";
+import {SafeManager} from "./base/SafeManager.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 
 /// @title Plumaa - An RSA SHA256 PKCS1.5 enabler module for Safe{Wallet} Smart Accounts
-contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
+contract Plumaa is RSAOwnerManager, SafeManager, EIP712Upgradeable {
     /// @notice A transaction signed with the Bytes32 owner's private key was executed
     event ExecutedRSATransaction(
-        address indexed wallet,
+        address indexed safe,
         bytes32 indexed sha256Digest,
         uint32 nonce,
         bool success
@@ -54,19 +55,22 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
     }
 
     /// @notice Initializes the contract with an RSA owner
+    /// @param exponent The exponent of the RSA public key
+    /// @param modulus The modulus of the RSA public key
+    /// @param safe_ The address of the Safe{Wallet} Smart Account
     function setupPlumaa(
         bytes memory exponent,
-        bytes memory modulus
+        bytes memory modulus,
+        Safe safe_
     ) public initializer {
+        __EIP712_init("RSAOwnerManager", "1");
         __RSAOwnerManager_init(exponent, modulus);
-        __EIP712_init("Plumaa", "1");
+        __SafeManager_init(safe_);
     }
 
-    /// @notice Executes a transaction from a Safe{Wallet} Smart Account using an RSA PKCS1.5 signature
-    /// @param wallet The Safe{Wallet} Smart Account address
+    /// @notice Executes a transaction from the associated Safe{Wallet} Smart Account using an RSA PKCS1.5 signature
     /// @param request The transaction request
     function executeTransaction(
-        address payable wallet,
         TransactionRequestData calldata request
     ) public payable virtual returns (bool) {
         if (block.timestamp >= request.deadline) {
@@ -75,7 +79,7 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
 
         uint32 currentNonce = _useOwnerNonce();
 
-        (bool valid, bytes32 sha256Digest) = verifyRSAOwnerRequest(
+        (bool valid, bytes32 sha256Digest) = verifyRSAOwnerTransactionRequest(
             request,
             currentNonce
         );
@@ -89,7 +93,9 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
             );
         }
 
-        bool success = Safe(wallet).execTransactionFromModule(
+        Safe _safe = safe();
+
+        bool success = _safe.execTransactionFromModule(
             request.to,
             request.value,
             request.data,
@@ -97,7 +103,7 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
         );
 
         emit ExecutedRSATransaction(
-            wallet,
+            address(_safe),
             sha256Digest,
             currentNonce,
             success
@@ -111,7 +117,7 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
     /// @param currentNonce The nonce of the RSA owner
     /// @return valid True if the transaction request is signed by the RSA owner
     /// @return digest The transaction request digest
-    function verifyRSAOwnerRequest(
+    function verifyRSAOwnerTransactionRequest(
         TransactionRequestData calldata request,
         uint32 currentNonce
     ) public view virtual returns (bool valid, bytes32 digest) {
@@ -141,5 +147,15 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
             ),
             sha256Digest
         );
+    }
+
+    /// @notice Sets the RSA Owner
+    /// @param exponent The exponent of the RSA public key
+    /// @param modulus The modulus of the RSA public key
+    function setOwner(
+        bytes memory exponent,
+        bytes memory modulus
+    ) public onlySafe {
+        _setOwner(exponent, modulus);
     }
 }

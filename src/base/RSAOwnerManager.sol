@@ -8,17 +8,13 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 
 /**
  * @title Modified version of Safe's OwnerManager for bytes32 that includes EIP7201 support.
- * (https://github.com/safe-global/safe-contracts/blob/main/contracts/base/OwnerManager.solF)
+ * (https://github.com/safe-global/safe-contracts/blob/main/contracts/base/OwnerManager.sol)
  *
  * An RSA Owner is a public key identified by a `keccak(modulus, exponent)`.
  * @notice This version uses bytes32 instead of address for owners
  */
-abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
+abstract contract RSAOwnerManager is Initializable {
     using RsaVerify for bytes32;
-
-    event AddedRSAOwner(bytes32 indexed owner);
-    event RemovedRSAOwner(bytes32 indexed owner);
-    event ChangedRSAThreshold(uint256 threshold);
 
     // keccak256(abi.encode(uint256(keccak256("plumaa.storage.RSAOwnerManager")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 constant RSAOwnerManagerStorageLocation =
@@ -48,16 +44,9 @@ abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
     }
 
     /// @notice Sets a new authorized public key bytes32 id. See {_toPublicKeyId}.
+    /// Beware this internal version doesn't require access control.
     /// @param exponent The exponent of the RSA public key.
     /// @param modulus The modulus of the RSA public key.
-    function setOwner(
-        bytes memory exponent,
-        bytes memory modulus
-    ) external authorized {
-        _setOwner(modulus, exponent);
-    }
-
-    /// @notice Internal version of {setOwner} without access control.
     function _setOwner(bytes memory exponent, bytes memory modulus) internal {
         _getRSAOwnerManagerStorage().owner = _toPublicKeyId(exponent, modulus);
     }
@@ -101,7 +90,7 @@ abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
         }
     }
 
-    /// @notice Returns true if the provided public key is an owner of the Safe.
+    /// @notice Returns true if the provided public key is an owner of the Plumaa.
     /// @param exponent The exponent of the RSA public key.
     /// @param modulus The modulus of the RSA public key.
     function _isRSAOwner(

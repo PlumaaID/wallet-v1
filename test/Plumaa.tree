@@ -1,64 +1,64 @@
 PlumaaTest
 ├── when initialized
-│   └── it should set the owner and nonce
+│   └── it sets the owner and nonce
 │      └── because the contract is initialized
-├── when calling verifyRSAOwnerRequest
+├── when calling verifyRSAOwnerTransactionRequest
 │   ├── given a tampered verifying to
-│   │   └── it should return false
+│   │   └── it returns false
 │   │       └── because the calculated digest doesn't match the signed struct hash
 │   ├── given a tampered verifying value
-│   │   └── it should return false
+│   │   └── it returns false
 │   │       └── because the calculated digest doesn't match the signed struct hash
 │   ├── given a tampered verifying operation
-│   │   └── it should return false
+│   │   └── it returns false
 │   │       └── because the calculated digest doesn't match the signed struct hash
 │   ├── given a tampered verifying deadline
-│   │   └── it should return false
+│   │   └── it returns false
 │   │       └── because the calculated digest doesn't match the signed struct hash
 │   ├── given a tampered verifying data
-│   │   └── it should return false
+│   │   └── it returns false
 │   │       └── because the calculated digest doesn't match the signed struct hash
 │   ├── given an invalid verifying nonce
-│   │   └── it should return false
+│   │   └── it returns false
 │   │       └── because the calculated digest doesn't match the signed struct hash
 │   ├── given a tampered verifying signature
-│   │   └── it should return false
+│   │   └── it returns false
 │   │       └── because the calculated digest doesn't match the signed struct hash
 │   ├── given an invalid verifying owner
-│   │   └── it should return false
+│   │   └── it returns false
 │   │       └── because the calculated digest doesn't match the signed struct hash
 │   └── given a valid verifying owner
-│       └── it should return true
+│       └── it returns true
 │           └── because the calculated digest matches the signed struct hash
 └── when calling executeTransaction
     ├── given a expired request
-    │   └── it should revert
+    │   └── it reverts
     │       └── because the request is no longer valid
     └── given a valid request
         ├── given a tampered executing to
-        │   └── it should revert
+        │   └── it reverts
         │       └── because the calculated digest doesn't match the signed struct hash
         ├── given a tampered executing value
-        │   └── it should revert
+        │   └── it reverts
         │       └── because the calculated digest doesn't match the signed struct hash
         ├── given a tampered executing operation
-        │   └── it should revert
+        │   └── it reverts
         │       └── because the calculated digest doesn't match the signed struct hash
         ├── given a tampered executing deadline
-        │   └── it should revert
+        │   └── it reverts
         │       └── because the calculated digest doesn't match the signed struct hash
         ├── given a tampered executing data
-        │   └── it should revert
+        │   └── it reverts
         │       └── because the calculated digest doesn't match the signed struct hash
         ├── given an invalid executing nonce
-        │   └── it should revert
+        │   └── it reverts
         │       └── because the calculated digest doesn't match the signed struct hash
         ├── given a tampered executing signature
-        │   └── it should revert
+        │   └── it reverts
         │       └── because the calculated digest doesn't match the signed struct hash
         ├── given an invalid executing owner
-        │   └── it should revert
+        │   └── it reverts
         │       └── because the calculated digest doesn't match the signed struct hash
         └── given a valid executing owner
-            └── it should execute the transaction
+            └── it executes the transaction
                 └── because the calculated digest matches the signed struct hash

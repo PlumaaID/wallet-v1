@@ -2,9 +2,11 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
-
-import {TransactionRequest, PlumaaMock, SafeMock, Receiver} from "./mocks/Mocks.sol";
+import {TransactionRequest} from "./mocks/Plumaa.m.sol";
+import {PlumaaMock} from "./mocks/Plumaa.m.sol";
+import {Safe, SafeMock} from "./mocks/Safe.m.sol";
 import {Enum} from "@safe/contracts/common/Enum.sol";
+import {SafeProxyFactory} from "@safe/contracts/proxies/SafeProxyFactory.sol";
 import {Plumaa} from "~/Plumaa.sol";
 import {console2} from "forge-std/console2.sol";
 import {Upgrades} from "@openzeppelin/foundry-upgrades/Upgrades.sol";
@@ -15,8 +17,8 @@ contract BaseTest is Test {
     RSASigner internal other;
 
     PlumaaMock internal plumaa;
-    SafeMock internal wallet;
-    Receiver internal receiver;
+    SafeMock internal safe;
+    address internal receiver = address(0x1234);
 
     uint256 internal callerPrivateKey;
     address internal caller;
@@ -33,17 +35,16 @@ contract BaseTest is Test {
 
         RSASigner.PublicKey memory publicKey = owner.publicKey();
 
+        safe = _deploySafeMock();
         address _proxy = Upgrades.deployTransparentProxy(
-            "Mocks.sol:PlumaaMock",
+            "Plumaa.m.sol:PlumaaMock",
             address(this),
             abi.encodeCall(
                 Plumaa.setupPlumaa,
-                (publicKey.exponent, publicKey.modulus)
+                (publicKey.exponent, publicKey.modulus, safe)
             )
         );
         plumaa = PlumaaMock(_proxy);
-        wallet = new SafeMock();
-        receiver = new Receiver();
 
         callerPrivateKey = 0xA11CE;
         caller = vm.addr(callerPrivateKey);
@@ -106,5 +107,39 @@ contract BaseTest is Test {
         });
 
         return plumaa.structHash(request);
+    }
+
+    function _deploySafeMock() private returns (SafeMock) {
+        SafeProxyFactory factory = new SafeProxyFactory();
+        bytes32 salt = keccak256("salt");
+        address singleton = address(new SafeMock());
+        address[] memory owners = new address[](1);
+        owners[0] = address(this);
+        bytes memory data = abi.encodeCall(
+            Safe.setup,
+            (
+                owners,
+                1,
+                address(0),
+                "",
+                address(0),
+                address(0),
+                0,
+                payable(address(0))
+            )
+        );
+
+        return
+            SafeMock(
+                payable(
+                    address(
+                        factory.createProxyWithNonce(
+                            singleton,
+                            data,
+                            uint256(salt)
+                        )
+                    )
+                )
+            );
     }
 }

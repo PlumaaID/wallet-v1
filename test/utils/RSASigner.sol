@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {TransactionRequest, PlumaaMock, SafeMock, Receiver} from "../mocks/Mocks.sol";
+import {TransactionRequest} from "../mocks/Plumaa.m.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 contract RSASigner {
@@ -21,10 +21,7 @@ contract RSASigner {
     /// @notice Creates a new RSA signer. Takes the signer's public key and
     constructor(string memory name) {
         _name = name;
-        _publicKey = PublicKey(
-            hex"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010001",
-            _extractModulus(name)
-        );
+        _publicKey = PublicKey(hex"010001", _extractModulus(name));
     }
 
     /// @notice Returns the RSA public key

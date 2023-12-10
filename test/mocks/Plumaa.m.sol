@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {Enum} from "@safe/contracts/common/Enum.sol";
 import {Plumaa} from "~/Plumaa.sol";
+import {Enum} from "@safe/contracts/common/Enum.sol";
 
 struct TransactionRequest {
     address to;
@@ -47,32 +47,5 @@ contract PlumaaMock is Plumaa {
         assembly {
             $.slot := RSAOwnerManagerStorageLocation
         }
-    }
-}
-
-contract SafeMock {
-    event ExecutedWith(
-        address indexed to,
-        uint256 indexed value,
-        bytes indexed data,
-        Enum.Operation operation
-    );
-
-    function execTransactionFromModule(
-        address to,
-        uint256 value,
-        bytes memory data,
-        Enum.Operation operation
-    ) public virtual returns (bool success) {
-        emit ExecutedWith(to, value, data, operation);
-        return true;
-    }
-}
-
-contract Receiver {
-    event Received(address sender, uint256 value, bytes data);
-
-    fallback() external payable {
-        emit Received(msg.sender, msg.value, msg.data);
     }
 }

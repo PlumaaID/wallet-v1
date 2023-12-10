@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {BaseTest} from "./Base.t.sol";
 import {RSASigner} from "./utils/RSASigner.sol";
 import {Enum} from "@safe/contracts/common/Enum.sol";
-import {SafeMock} from "./mocks/Mocks.sol";
+import {SafeMock} from "./mocks/Safe.m.sol";
 import {console2} from "forge-std/console2.sol";
 import {Plumaa} from "~/Plumaa.sol";
 
@@ -32,109 +32,75 @@ contract PlumaaTest is BaseTest {
     /// @notice it should be initialized
     function test_WhenInitialized() external {
         RSASigner.PublicKey memory ownerPublicKey = owner.publicKey();
-        bytes32 publicKeyId = keccak256(
-            abi.encodePacked(ownerPublicKey.exponent, ownerPublicKey.modulus)
-        );
+        bytes32 publicKeyId = keccak256(abi.encodePacked(ownerPublicKey.exponent, ownerPublicKey.modulus));
         assertEq(plumaa.owner(), publicKeyId);
         assertEq(plumaa.nonce(), 0);
     }
 
-    modifier whenCallingVerifyRSAOwnerRequest() {
+    modifier whenCallingVerifyRSAOwnerTransactionRequest() {
         _;
     }
 
     /// @notice it should return false because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedVerifyingTo(
-        address to
-    ) external whenCallingVerifyRSAOwnerRequest {
+    function test_GivenATamperedVerifyingTo(address to) external whenCallingVerifyRSAOwnerTransactionRequest {
         vm.assume(to != _defaultTo);
 
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeDefaultRequestData(owner);
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) = _forgeDefaultRequestData(owner);
 
         request.to = to;
 
-        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerRequest(
-            request,
-            _defaultNonce
-        );
+        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerTransactionRequest(request, _defaultNonce);
 
         assertFalse(valid);
         assertNotEq(digest, _toDigest(structHash));
     }
 
     /// @notice it should return false because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedVerifyingValue(
-        uint256 value
-    ) external whenCallingVerifyRSAOwnerRequest {
+    function test_GivenATamperedVerifyingValue(uint256 value) external whenCallingVerifyRSAOwnerTransactionRequest {
         vm.assume(value != _defaultValue);
 
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeDefaultRequestData(owner);
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) = _forgeDefaultRequestData(owner);
 
         request.value = value;
 
-        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerRequest(
-            request,
-            _defaultNonce
-        );
+        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerTransactionRequest(request, _defaultNonce);
 
         assertFalse(valid);
         assertNotEq(digest, _toDigest(structHash));
     }
 
     /// @notice it should return false because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedVerifyingOperation()
-        external
-        whenCallingVerifyRSAOwnerRequest
-    {
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeDefaultRequestData(owner);
+    function test_GivenATamperedVerifyingOperation() external whenCallingVerifyRSAOwnerTransactionRequest {
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) = _forgeDefaultRequestData(owner);
 
         // _defaultOperation == Enum.Operation.Call;
         request.operation = Enum.Operation.DelegateCall;
 
-        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerRequest(
-            request,
-            _defaultNonce
-        );
+        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerTransactionRequest(request, _defaultNonce);
 
         assertFalse(valid);
         assertNotEq(digest, _toDigest(structHash));
     }
 
     /// @notice it should return false because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedVerifyingDeadline(
-        uint48 deadline
-    ) external whenCallingVerifyRSAOwnerRequest {
+    function test_GivenATamperedVerifyingDeadline(uint48 deadline)
+        external
+        whenCallingVerifyRSAOwnerTransactionRequest
+    {
         vm.assume(deadline != _defaultDeadline);
 
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeDefaultRequestData(owner);
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) = _forgeDefaultRequestData(owner);
 
         request.deadline = deadline;
 
-        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerRequest(
-            request,
-            _defaultNonce
-        );
+        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerTransactionRequest(request, _defaultNonce);
 
         assertFalse(valid);
         assertNotEq(digest, _toDigest(structHash));
     }
 
     /// @notice it should return false because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedVerifyingData(
-        bytes memory data
-    ) external whenCallingVerifyRSAOwnerRequest {
+    function test_GivenATamperedVerifyingData(bytes memory data) external whenCallingVerifyRSAOwnerTransactionRequest {
         // Copy default data to memory
         bytes memory defaultData = _defaultData;
 
@@ -142,57 +108,38 @@ contract PlumaaTest is BaseTest {
         // used signature is product of the default data
         vm.assume(keccak256(data) != keccak256(defaultData));
 
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeDefaultRequestData(owner);
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) = _forgeDefaultRequestData(owner);
 
         request.data = data;
 
-        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerRequest(
-            request,
-            _defaultNonce
-        );
+        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerTransactionRequest(request, _defaultNonce);
 
         assertFalse(valid);
         assertNotEq(digest, _toDigest(structHash));
     }
 
     /// @notice it should return false because the calculated digest doesn't match the signed struct hash
-    function test_GivenAnInvalidVerifyingNonce(
-        uint32 nonce
-    ) external whenCallingVerifyRSAOwnerRequest {
+    function test_GivenAnInvalidVerifyingNonce(uint32 nonce) external whenCallingVerifyRSAOwnerTransactionRequest {
         vm.assume(nonce != _defaultNonce);
 
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeDefaultRequestData(owner);
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) = _forgeDefaultRequestData(owner);
 
-        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerRequest(
-            request,
-            nonce
-        );
+        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerTransactionRequest(request, nonce);
 
         assertFalse(valid);
         assertNotEq(digest, _toDigest(structHash));
     }
 
     /// @notice it should return false because the signature doesn't correspond to a valid owner
-    function test_GivenATamperedVerifyingSignature(
-        bytes memory signature
-    ) external whenCallingVerifyRSAOwnerRequest {
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeDefaultRequestData(owner);
+    function test_GivenATamperedVerifyingSignature(bytes memory signature)
+        external
+        whenCallingVerifyRSAOwnerTransactionRequest
+    {
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) = _forgeDefaultRequestData(owner);
 
         request.signature = signature;
 
-        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerRequest(
-            request,
-            _defaultNonce
-        );
+        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerTransactionRequest(request, _defaultNonce);
 
         assertFalse(valid);
         assertEq(digest, _toDigest(structHash));
@@ -206,26 +153,13 @@ contract PlumaaTest is BaseTest {
         uint8 operation,
         bytes memory data,
         uint32 nonce
-    ) external whenCallingVerifyRSAOwnerRequest {
+    ) external whenCallingVerifyRSAOwnerTransactionRequest {
         operation = uint8(bound(operation, 0, uint8(type(Enum.Operation).max)));
 
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeRequestData(
-                other,
-                to,
-                value,
-                Enum.Operation(operation),
-                deadline,
-                data,
-                nonce
-            );
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) =
+            _forgeRequestData(other, to, value, Enum.Operation(operation), deadline, data, nonce);
 
-        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerRequest(
-            request,
-            nonce
-        );
+        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerTransactionRequest(request, nonce);
 
         assertFalse(valid);
         assertEq(digest, _toDigest(structHash));
@@ -239,26 +173,13 @@ contract PlumaaTest is BaseTest {
         uint8 operation,
         bytes memory data,
         uint32 nonce
-    ) external whenCallingVerifyRSAOwnerRequest {
+    ) external whenCallingVerifyRSAOwnerTransactionRequest {
         operation = uint8(bound(operation, 0, uint8(type(Enum.Operation).max)));
 
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeRequestData(
-                owner,
-                to,
-                value,
-                Enum.Operation(operation),
-                deadline,
-                data,
-                nonce
-            );
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) =
+            _forgeRequestData(owner, to, value, Enum.Operation(operation), deadline, data, nonce);
 
-        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerRequest(
-            request,
-            nonce
-        );
+        (bool valid, bytes32 digest) = plumaa.verifyRSAOwnerTransactionRequest(request, nonce);
 
         assertTrue(valid);
         assertEq(digest, _toDigest(structHash));
@@ -269,9 +190,7 @@ contract PlumaaTest is BaseTest {
     }
 
     /// @notice it should revert because the request is no longer valid
-    function test_GivenAExpiredRequest(
-        uint48 afterDeadline
-    ) external whenCallingExecuteTransaction {
+    function test_GivenAExpiredRequest(uint48 afterDeadline) external whenCallingExecuteTransaction {
         // _defaultDeadline is exactly before the deadline
         vm.assume(afterDeadline > 0);
 
@@ -280,23 +199,12 @@ contract PlumaaTest is BaseTest {
 
         uint48 deadline = uint48(_defaultDeadline - afterDeadline);
 
-        (Plumaa.TransactionRequestData memory request, ) = _forgeRequestData(
-            owner,
-            _defaultTo,
-            _defaultValue,
-            _defaultOperation,
-            deadline,
-            _defaultData,
-            _defaultNonce
+        (Plumaa.TransactionRequestData memory request,) = _forgeRequestData(
+            owner, _defaultTo, _defaultValue, _defaultOperation, deadline, _defaultData, _defaultNonce
         );
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Plumaa.ExpiredRSATransaction.selector,
-                deadline
-            )
-        );
-        plumaa.executeTransaction(payable(address(wallet)), request);
+        vm.expectRevert(abi.encodeWithSelector(Plumaa.ExpiredRSATransaction.selector, deadline));
+        plumaa.executeTransaction(request);
     }
 
     modifier givenAValidRequest() {
@@ -304,25 +212,15 @@ contract PlumaaTest is BaseTest {
     }
 
     /// @notice it should revert because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedExecutingTo(
-        address to
-    ) external whenCallingExecuteTransaction givenAValidRequest {
+    function test_GivenATamperedExecutingTo(address to) external whenCallingExecuteTransaction givenAValidRequest {
         vm.assume(to != _defaultTo);
 
-        (
-            Plumaa.TransactionRequestData memory request,
-
-        ) = _forgeDefaultRequestData(owner);
+        (Plumaa.TransactionRequestData memory request,) = _forgeDefaultRequestData(owner);
 
         request.to = to;
 
         bytes32 structHash = _requestStructHash(
-            request.to,
-            request.value,
-            request.operation,
-            request.deadline,
-            request.data,
-            _defaultNonce
+            request.to, request.value, request.operation, request.deadline, request.data, _defaultNonce
         );
 
         vm.expectRevert(
@@ -334,64 +232,46 @@ contract PlumaaTest is BaseTest {
                 request.modulus
             )
         );
-        plumaa.executeTransaction(payable(address(wallet)), request);
+        plumaa.executeTransaction(request);
     }
 
     /// @notice it should revert because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedExecutingValue(
-        uint256 value
-    ) external whenCallingExecuteTransaction givenAValidRequest {
-        vm.assume(value != _defaultValue);
-
-        (
-            Plumaa.TransactionRequestData memory request,
-
-        ) = _forgeDefaultRequestData(owner);
-
-        request.value = value;
-
-        bytes32 structHash = _requestStructHash(
-            request.to,
-            request.value,
-            request.operation,
-            request.deadline,
-            request.data,
-            _defaultNonce
-        );
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Plumaa.InvalidRSASignature.selector,
-                _toDigest(structHash),
-                request.signature,
-                request.exponent,
-                request.modulus
-            )
-        );
-        plumaa.executeTransaction(payable(address(wallet)), request);
-    }
-
-    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedExecutingOperation()
+    function test_GivenATamperedExecutingValue(uint256 value)
         external
         whenCallingExecuteTransaction
         givenAValidRequest
     {
-        (
-            Plumaa.TransactionRequestData memory request,
+        vm.assume(value != _defaultValue);
 
-        ) = _forgeDefaultRequestData(owner);
+        (Plumaa.TransactionRequestData memory request,) = _forgeDefaultRequestData(owner);
+
+        request.value = value;
+
+        bytes32 structHash = _requestStructHash(
+            request.to, request.value, request.operation, request.deadline, request.data, _defaultNonce
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Plumaa.InvalidRSASignature.selector,
+                _toDigest(structHash),
+                request.signature,
+                request.exponent,
+                request.modulus
+            )
+        );
+        plumaa.executeTransaction(request);
+    }
+
+    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
+    function test_GivenATamperedExecutingOperation() external whenCallingExecuteTransaction givenAValidRequest {
+        (Plumaa.TransactionRequestData memory request,) = _forgeDefaultRequestData(owner);
 
         // _defaultOperation == Enum.Operation.Call;
         request.operation = Enum.Operation.DelegateCall;
 
         bytes32 structHash = _requestStructHash(
-            request.to,
-            request.value,
-            request.operation,
-            request.deadline,
-            request.data,
-            _defaultNonce
+            request.to, request.value, request.operation, request.deadline, request.data, _defaultNonce
         );
 
         vm.expectRevert(
@@ -403,30 +283,24 @@ contract PlumaaTest is BaseTest {
                 request.modulus
             )
         );
-        plumaa.executeTransaction(payable(address(wallet)), request);
+        plumaa.executeTransaction(request);
     }
 
     /// @notice it should revert because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedExecutingDeadline(
-        uint48 deadline
-    ) external whenCallingExecuteTransaction givenAValidRequest {
+    function test_GivenATamperedExecutingDeadline(uint48 deadline)
+        external
+        whenCallingExecuteTransaction
+        givenAValidRequest
+    {
         // Not expired and not equal to the default deadline
         vm.assume(deadline > _defaultDeadline);
 
-        (
-            Plumaa.TransactionRequestData memory request,
-
-        ) = _forgeDefaultRequestData(owner);
+        (Plumaa.TransactionRequestData memory request,) = _forgeDefaultRequestData(owner);
 
         request.deadline = deadline;
 
         bytes32 structHash = _requestStructHash(
-            request.to,
-            request.value,
-            request.operation,
-            request.deadline,
-            request.data,
-            _defaultNonce
+            request.to, request.value, request.operation, request.deadline, request.data, _defaultNonce
         );
 
         vm.expectRevert(
@@ -438,13 +312,15 @@ contract PlumaaTest is BaseTest {
                 request.modulus
             )
         );
-        plumaa.executeTransaction(payable(address(wallet)), request);
+        plumaa.executeTransaction(request);
     }
 
     /// @notice it should revert because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedExecutingData(
-        bytes memory data
-    ) external whenCallingExecuteTransaction givenAValidRequest {
+    function test_GivenATamperedExecutingData(bytes memory data)
+        external
+        whenCallingExecuteTransaction
+        givenAValidRequest
+    {
         // Copy default data to memory
         bytes memory defaultData = _defaultData;
 
@@ -452,20 +328,12 @@ contract PlumaaTest is BaseTest {
         // used signature is product of the default data
         vm.assume(keccak256(data) != keccak256(defaultData));
 
-        (
-            Plumaa.TransactionRequestData memory request,
-
-        ) = _forgeDefaultRequestData(owner);
+        (Plumaa.TransactionRequestData memory request,) = _forgeDefaultRequestData(owner);
 
         request.data = data;
 
         bytes32 structHash = _requestStructHash(
-            request.to,
-            request.value,
-            request.operation,
-            request.deadline,
-            request.data,
-            _defaultNonce
+            request.to, request.value, request.operation, request.deadline, request.data, _defaultNonce
         );
 
         vm.expectRevert(
@@ -477,32 +345,23 @@ contract PlumaaTest is BaseTest {
                 request.modulus
             )
         );
-        plumaa.executeTransaction(payable(address(wallet)), request);
+        plumaa.executeTransaction(request);
     }
 
     /// @notice it should revert because the calculated digest doesn't match the signed struct hash
-    function test_GivenAnInvalidExecutingNonce(
-        uint32 nonce
-    ) external whenCallingExecuteTransaction givenAValidRequest {
+    function test_GivenAnInvalidExecutingNonce(uint32 nonce)
+        external
+        whenCallingExecuteTransaction
+        givenAValidRequest
+    {
         vm.assume(nonce != _defaultNonce);
 
-        (Plumaa.TransactionRequestData memory request, ) = _forgeRequestData(
-            owner,
-            _defaultTo,
-            _defaultValue,
-            _defaultOperation,
-            _defaultDeadline,
-            _defaultData,
-            nonce
+        (Plumaa.TransactionRequestData memory request,) = _forgeRequestData(
+            owner, _defaultTo, _defaultValue, _defaultOperation, _defaultDeadline, _defaultData, nonce
         );
 
         bytes32 structHash = _requestStructHash(
-            request.to,
-            request.value,
-            request.operation,
-            request.deadline,
-            request.data,
-            _defaultNonce
+            request.to, request.value, request.operation, request.deadline, request.data, _defaultNonce
         );
 
         vm.expectRevert(
@@ -514,17 +373,16 @@ contract PlumaaTest is BaseTest {
                 request.modulus
             )
         );
-        plumaa.executeTransaction(payable(address(wallet)), request);
+        plumaa.executeTransaction(request);
     }
 
     /// @notice it should revert because the calculated digest doesn't match the signed struct hash
-    function test_GivenATamperedExecutingSignature(
-        bytes memory signature
-    ) external whenCallingExecuteTransaction givenAValidRequest {
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeDefaultRequestData(owner);
+    function test_GivenATamperedExecutingSignature(bytes memory signature)
+        external
+        whenCallingExecuteTransaction
+        givenAValidRequest
+    {
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) = _forgeDefaultRequestData(owner);
 
         request.signature = signature;
 
@@ -537,19 +395,12 @@ contract PlumaaTest is BaseTest {
                 request.modulus
             )
         );
-        plumaa.executeTransaction(payable(address(wallet)), request);
+        plumaa.executeTransaction(request);
     }
 
     /// @notice it should revert because the calculated digest doesn't match the signed struct hash
-    function test_GivenAnInvalidExecutingOwner()
-        external
-        whenCallingExecuteTransaction
-        givenAValidRequest
-    {
-        (
-            Plumaa.TransactionRequestData memory request,
-            bytes32 structHash
-        ) = _forgeDefaultRequestData(other);
+    function test_GivenAnInvalidExecutingOwner() external whenCallingExecuteTransaction givenAValidRequest {
+        (Plumaa.TransactionRequestData memory request, bytes32 structHash) = _forgeDefaultRequestData(other);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -560,7 +411,7 @@ contract PlumaaTest is BaseTest {
                 request.modulus
             )
         );
-        plumaa.executeTransaction(payable(address(wallet)), request);
+        plumaa.executeTransaction(request);
     }
 
     /// @notice Tests that a transaction can be executed only if the signature is valid.
@@ -580,63 +431,36 @@ contract PlumaaTest is BaseTest {
 
         plumaa.unsafeSetNonce(currentNonce);
 
-        (
-            Plumaa.TransactionRequestData memory requestData,
-            bytes32 structHash
-        ) = _forgeRequestData(
-                owner,
-                address(receiver),
-                value,
-                Enum.Operation.Call,
-                uint48(block.timestamp) + expiresAfter,
-                data,
-                currentNonce
-            );
-
-        vm.expectEmit(true, true, true, true);
-        emit SafeMock.ExecutedWith(
+        (Plumaa.TransactionRequestData memory requestData, bytes32 structHash) = _forgeRequestData(
+            owner,
             address(receiver),
             value,
+            Enum.Operation.Call,
+            uint48(block.timestamp) + expiresAfter,
             data,
-            Enum.Operation.Call
+            currentNonce
         );
+
         vm.expectEmit(true, true, true, true);
-        emit Plumaa.ExecutedRSATransaction(
-            address(wallet),
-            _toDigest(structHash),
-            currentNonce,
-            true
-        );
-        bool success = plumaa.executeTransaction(
-            payable(address(wallet)),
-            requestData
-        );
+        emit SafeMock.ExecutedWith(address(receiver), value, data, Enum.Operation.Call);
+        vm.expectEmit(true, true, true, true);
+        emit Plumaa.ExecutedRSATransaction(address(safe), _toDigest(structHash), currentNonce, true);
+        bool success = plumaa.executeTransaction(requestData);
         assertTrue(success, "Plumaa: transaction failed");
         assertEq(currentNonce + 1, plumaa.nonce());
     }
 
     /// @notice Returns the default request data.
-    function _forgeDefaultRequestData(
-        RSASigner signer
-    )
+    function _forgeDefaultRequestData(RSASigner signer)
         private
-        returns (
-            Plumaa.TransactionRequestData memory requestData,
-            bytes32 digest
-        )
+        returns (Plumaa.TransactionRequestData memory requestData, bytes32 digest)
     {
-        return
-            _forgeRequestData(
-                signer,
-                _defaultTo,
-                _defaultValue,
-                _defaultOperation,
-                _defaultDeadline,
-                _defaultData,
-                _defaultNonce
-            );
+        return _forgeRequestData(
+            signer, _defaultTo, _defaultValue, _defaultOperation, _defaultDeadline, _defaultData, _defaultNonce
+        );
     }
 
+    /// @notice Applies sha256 to `structHash` so the digest is PKCS8 compliant
     function _toDigest(bytes32 structHash) private pure returns (bytes32) {
         return sha256(abi.encodePacked(structHash));
     }
