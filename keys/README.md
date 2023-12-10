@@ -4,6 +4,14 @@ This directory contains the keys for the accounts used in Plumaa tests. Each sub
 
 The characteristics of these certificates are well outlined in [this external documentation.](https://go.reachcore.com/docs/Articulos/CSDPruebas).
 
+### Quick start
+
+To setup the keys directory, run:
+
+```bash
+bash scripts/derive_keys.sh
+```
+
 ### How to generate each `private.pem` and `public.pem` file
 
 The tests certificates provided by the SAT are in `.cer` format. These include the identification information associated to each public key included in the certificate and should've been signed by the SAT certification authority.
@@ -12,10 +20,10 @@ Similarly, the private keys of each `.cer` file are given in `.key` format. Thes
 
 You'll need both `.cer` and `.key` to convert them to `.pem` using OpenSSL.
 
-For the `.cer` to a `public.pem`:
-
 > [!WARNING]
 > Never use actual private keys here since they'll be stored without encryption. Although the keys are ignored by git, there's a high risk of leaking if such key is kept unencrypted.
+
+For the `.cer` to a `public.pem`:
 
 ```bash
 openssl x509 -inform der -in path/to/certificate.cer -pubkey -noout -outform der > public.pem
@@ -27,5 +35,3 @@ For the `.key` to a `private.pem`:
 ## NOTE: You'll be prompted for the password here.
 openssl rsa -inform der -outform pem -in path/to/private.key -out private.pem
 ```
-
-Repeat these steps for each signer subfolder in this directory.

@@ -22,7 +22,7 @@ jobs:
         with:
           submodules: recursive
       - name: Derive keys
-        run: bash scripts/derive-keys.sh
+        run: bash scripts/derive_keys.sh
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
