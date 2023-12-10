@@ -3,12 +3,12 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 
-import {TransactionRequest, PlumaaMock, SafeMock, Receiver} from "../mocks/Mocks.sol";
+import {TransactionRequest, PlumaaMock, SafeMock, Receiver} from "./mocks/Mocks.sol";
 import {Enum} from "@safe/contracts/common/Enum.sol";
 import {Plumaa} from "~/Plumaa.sol";
 import {console2} from "forge-std/console2.sol";
 import {Upgrades} from "@openzeppelin/foundry-upgrades/Upgrades.sol";
-import {RSASigner} from "./RSASigner.sol";
+import {RSASigner} from "./utils/RSASigner.sol";
 
 contract BaseTest is Test {
     RSASigner internal owner;

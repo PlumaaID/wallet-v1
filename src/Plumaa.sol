@@ -73,11 +73,11 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
             revert ExpiredRSATransaction(request.deadline);
         }
 
-        uint256 nonce = useOwnerNonce();
+        uint256 currentNonce = _useOwnerNonce();
 
         (bool valid, bytes32 sha256Digest) = verifyRSAOwnerRequest(
             request,
-            nonce
+            currentNonce
         );
 
         if (!valid) {
@@ -96,18 +96,24 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
             request.operation
         );
 
-        emit ExecutedRSATransaction(wallet, sha256Digest, nonce, success);
+        emit ExecutedRSATransaction(
+            wallet,
+            sha256Digest,
+            currentNonce,
+            success
+        );
 
         return success;
     }
 
     /// @notice Checks if the SHA256 digest of a transaction request {_hashTypedDataV4} value is signed by the RSA owner.
     /// @param request The transaction request
+    /// @param currentNonce The nonce of the RSA owner
     /// @return valid True if the transaction request is signed by the RSA owner
     /// @return digest The transaction request digest
     function verifyRSAOwnerRequest(
         TransactionRequestData calldata request,
-        uint256 nonce
+        uint256 currentNonce
     ) public view virtual returns (bool valid, bytes32 digest) {
         bytes32 typehash = _hashTypedDataV4(
             keccak256(
@@ -118,7 +124,7 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
                     request.operation,
                     request.deadline,
                     keccak256(request.data),
-                    nonce
+                    currentNonce
                 )
             )
         );
@@ -127,7 +133,7 @@ contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
         bytes32 sha256Digest = sha256(abi.encodePacked(typehash));
 
         return (
-            verifyRSAOwner(
+            _verifyRSAOwner(
                 sha256Digest,
                 request.signature,
                 request.exponent,

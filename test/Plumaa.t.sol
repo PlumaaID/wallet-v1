@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {BaseTest} from "./base/Base.sol";
-import {RSASigner} from "./base/RSASigner.sol";
+import {BaseTest} from "./Base.sol";
+import {RSASigner} from "./utils/RSASigner.sol";
 import {Enum} from "@safe/contracts/common/Enum.sol";
 import {SafeMock} from "./mocks/Mocks.sol";
 import {console2} from "forge-std/console2.sol";

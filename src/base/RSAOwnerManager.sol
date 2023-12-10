@@ -37,7 +37,17 @@ abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
         _setOwner(exponent, modulus);
     }
 
-    /// @notice Sets a new authorized public key bytes32 id. See {toPublicKeyId}.
+    /// @notice Returns the current owner of the Plumaa. See {_toPublicKeyId}.
+    function owner() public view returns (bytes32) {
+        return _getRSAOwnerManagerStorage().owner;
+    }
+
+    /// @notice Returns the current nonce of the Plumaa.
+    function nonce() public view returns (uint256) {
+        return _getRSAOwnerManagerStorage().nonce;
+    }
+
+    /// @notice Sets a new authorized public key bytes32 id. See {_toPublicKeyId}.
     /// @param exponent The exponent of the RSA public key.
     /// @param modulus The modulus of the RSA public key.
     function setOwner(
@@ -49,17 +59,7 @@ abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
 
     /// @notice Internal version of {setOwner} without access control.
     function _setOwner(bytes memory exponent, bytes memory modulus) internal {
-        _getRSAOwnerManagerStorage().owner = toPublicKeyId(exponent, modulus);
-    }
-
-    /// @notice On the absense of a proper public key, we identify each RSA owner by a keccak256(modulus, exponent).
-    /// @param exponent The exponent of the RSA public key.
-    /// @param modulus The modulus of the RSA public key.
-    function toPublicKeyId(
-        bytes memory exponent,
-        bytes memory modulus
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(exponent, modulus));
+        _getRSAOwnerManagerStorage().owner = _toPublicKeyId(exponent, modulus);
     }
 
     /// @notice Returns true if the provided signature is valid for the dignest and public key.
@@ -67,15 +67,13 @@ abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
     /// @param signature The signature to verify.
     /// @param exponent The exponent of the RSA public key.
     /// @param modulus The modulus of the RSA public key.
-    function verifyRSAOwner(
+    function _verifyRSAOwner(
         bytes memory message,
         bytes memory signature,
         bytes memory exponent,
         bytes memory modulus
     ) internal view returns (bool) {
-        return
-            isRSAOwner(exponent, modulus) &&
-            verifyRSAOwner(sha256(message), signature, exponent, modulus);
+        return _verifyRSAOwner(sha256(message), signature, exponent, modulus);
     }
 
     /// @notice Returns true if the provided signature is valid for the dignest and public key.
@@ -83,36 +81,46 @@ abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
     /// @param signature The signature to verify.
     /// @param exponent The exponent of the RSA public key.
     /// @param modulus The modulus of the RSA public key.
-    function verifyRSAOwner(
+    function _verifyRSAOwner(
         bytes32 sha256Digest,
         bytes memory signature,
         bytes memory exponent,
         bytes memory modulus
     ) internal view returns (bool) {
         return
-            isRSAOwner(exponent, modulus) &&
+            _isRSAOwner(exponent, modulus) &&
             sha256Digest.pkcs1Sha256(signature, exponent, modulus);
+    }
+
+    /// @notice Consumes a nonce.
+    /// Returns the current value and increments nonce.
+    function _useOwnerNonce() internal virtual returns (uint256) {
+        unchecked {
+            // It is important to do x++ and not ++x here.
+            return _getRSAOwnerManagerStorage().nonce++;
+        }
     }
 
     /// @notice Returns true if the provided public key is an owner of the Safe.
     /// @param exponent The exponent of the RSA public key.
     /// @param modulus The modulus of the RSA public key.
-    function isRSAOwner(
+    function _isRSAOwner(
         bytes memory exponent,
         bytes memory modulus
-    ) internal view returns (bool) {
+    ) private view returns (bool) {
         return
             _getRSAOwnerManagerStorage().owner ==
-            toPublicKeyId(exponent, modulus);
+            _toPublicKeyId(exponent, modulus);
     }
 
-    /// @notice Consumes a nonce.
-    /// Returns the current value and increments nonce.
-    function useOwnerNonce() internal virtual returns (uint256) {
-        unchecked {
-            // It is important to do x++ and not ++x here.
-            return _getRSAOwnerManagerStorage().nonce++;
-        }
+    /// @notice On the absense of a proper public key, we identify each RSA owner by a keccak256(modulus, exponent).
+    /// @param exponent The exponent of the RSA public key.
+    /// @param modulus The modulus of the RSA public key.
+    function _toPublicKeyId(
+        bytes memory exponent,
+        bytes memory modulus
+    ) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(exponent, modulus));
     }
 
     /// @notice Get EIP-7201 storage
