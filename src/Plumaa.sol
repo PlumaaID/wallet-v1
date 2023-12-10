@@ -4,9 +4,10 @@ pragma solidity ^0.8.20;
 import {Enum} from "@safe/contracts/common/Enum.sol";
 import {Safe} from "@safe/contracts/Safe.sol";
 import {RSAOwnerManager} from "./base/RSAOwnerManager.sol";
+import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 
 /// @title Plumaa - An RSA SHA256 PKCS1.5 enabler module for Safe{Wallet} Smart Accounts
-contract Plumaa is RSAOwnerManager {
+contract Plumaa is RSAOwnerManager, EIP712Upgradeable {
     /// @notice A transaction signed with the Bytes32 owner's private key was executed
     event ExecutedRSATransaction(
         address indexed wallet,
@@ -58,6 +59,7 @@ contract Plumaa is RSAOwnerManager {
         bytes memory modulus
     ) public initializer {
         __RSAOwnerManager_init(exponent, modulus);
+        __EIP712_init("Plumaa", "1");
     }
 
     /// @notice Executes a transaction from a Safe{Wallet} Smart Account using an RSA PKCS1.5 signature

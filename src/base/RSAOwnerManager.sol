@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 import {SelfAuthorized} from "@safe/contracts/common/SelfAuthorized.sol";
 import {RsaVerify} from "../utils/RsaVerify.sol";
-import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @title Modified version of Safe's OwnerManager for bytes32 that includes EIP7201 support.
@@ -13,7 +13,7 @@ import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/crypt
  * An RSA Owner is a public key identified by a `keccak(modulus, exponent)`.
  * @notice This version uses bytes32 instead of address for owners
  */
-abstract contract RSAOwnerManager is SelfAuthorized, EIP712Upgradeable {
+abstract contract RSAOwnerManager is SelfAuthorized, Initializable {
     using RsaVerify for bytes32;
 
     event AddedRSAOwner(bytes32 indexed owner);
@@ -35,7 +35,6 @@ abstract contract RSAOwnerManager is SelfAuthorized, EIP712Upgradeable {
         bytes memory modulus
     ) internal onlyInitializing {
         _setOwner(exponent, modulus);
-        __EIP712_init_unchained("RSAOwner", "1");
     }
 
     /// @notice Sets a new authorized public key bytes32 id. See {toPublicKeyId}.
