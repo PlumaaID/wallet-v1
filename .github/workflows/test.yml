@@ -32,11 +32,11 @@ jobs:
           forge --version
           forge build --sizes
         id: build
-      - name: Run Forge tests
-        run: |
-          forge test -vvv
-        id: test
       - name: Run Bulloak check
         run: |
           bulloak check test/**.tree
         id: bulloak
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test
