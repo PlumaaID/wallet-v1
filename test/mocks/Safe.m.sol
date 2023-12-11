@@ -19,6 +19,6 @@ contract SafeMock is Safe {
         Enum.Operation operation
     ) public override returns (bool success) {
         emit ExecutedWith(to, value, data, operation);
-        return true;
+        return super.execTransactionFromModule(to, value, data, operation);
     }
 }

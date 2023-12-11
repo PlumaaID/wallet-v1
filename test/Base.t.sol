@@ -19,6 +19,7 @@ contract BaseTest is Test {
     PlumaaMock internal plumaa;
     SafeMock internal safe;
     address internal receiver = address(0x1234);
+    address proxyAdmin;
 
     uint256 internal callerPrivateKey;
     address internal caller;
@@ -45,6 +46,8 @@ contract BaseTest is Test {
             )
         );
         plumaa = PlumaaMock(_proxy);
+        _forceEnableModule(address(plumaa));
+        proxyAdmin = computeCreateAddress(address(this), 0);
 
         callerPrivateKey = 0xA11CE;
         caller = vm.addr(callerPrivateKey);
@@ -141,5 +144,16 @@ contract BaseTest is Test {
                     )
                 )
             );
+    }
+
+    function _forceEnableModule(address module) internal {
+        // Enable as a module to bypass signatures
+        // https://twitter.com/0xVazi/status/1732187067776696655
+        vm.store(
+            address(safe),
+            keccak256(abi.encode(address(module), 1)),
+            bytes32(uint256(1))
+        );
+        assertTrue(safe.isModuleEnabled(address(module)));
     }
 }

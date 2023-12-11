@@ -1,4 +1,11 @@
 PlumaaTest
+├── when setting owner
+│   ├── given a non safe owner
+│   │   └── it reverts
+│   │       └── because the sender is not the owner
+│   └── given the safe owner
+│       └── it sets the owner
+│           └── because the sender is the owner
 ├── when initialized
 │   └── it sets the owner and nonce
 │      └── because the contract is initialized

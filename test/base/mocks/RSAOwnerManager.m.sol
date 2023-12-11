@@ -27,4 +27,20 @@ contract RSAOwnerManagerMock is RSAOwnerManager {
     function $_useOwnerNonce() external {
         _useOwnerNonce();
     }
+
+    /// @notice Unsafely overrides the nonce
+    function unsafeSetNonce(uint32 newNonce) external {
+        _storage().nonce = newNonce;
+    }
+
+    /// @notice Get EIP-7201 storage
+    function _storage()
+        private
+        pure
+        returns (RSAOwnerManagerStorage storage $)
+    {
+        assembly {
+            $.slot := RSAOwnerManagerStorageLocation
+        }
+    }
 }

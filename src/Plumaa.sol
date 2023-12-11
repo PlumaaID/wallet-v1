@@ -72,7 +72,7 @@ contract Plumaa is RSAOwnerManager, SafeManager, EIP712Upgradeable {
     /// @param request The transaction request
     function executeTransaction(
         TransactionRequestData calldata request
-    ) public payable virtual returns (bool) {
+    ) public virtual returns (bool) {
         if (block.timestamp >= request.deadline) {
             revert ExpiredRSATransaction(request.deadline);
         }

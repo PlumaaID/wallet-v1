@@ -2,13 +2,6 @@ RSAOwnerManagerTest
   ├── when initialized
   │   └── it sets the owner and nonce
   │       └── because the contract is initialized
-  ├── when calling setOwner
-  │   ├── given a call from itself
-  │   │   └── it sets the owner
-  │   │       └── because safe is calling
-  │   └── given a call from other than itself
-  │       └── it reverts
-  │           └── because only safe can call
   ├── when calling _setOwner
   │   └── it sets the owner
   │       └── because internal function has no access control
@@ -17,7 +10,7 @@ RSAOwnerManagerTest
   │   │   ├── given a signature from the owner
   │   │   │   └── it returns true
   │   │   │       └── because is self authorized
-  │   │   └── given a signature from a non-owner
+  │   │   └── given a signature from a non owner
   │   │       └── it returns false
   │   │           └── because is not authorized
   │   └── given an invalid signature
