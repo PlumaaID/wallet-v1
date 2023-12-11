@@ -18,88 +18,40 @@ pragma solidity ^0.8.0;
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     
     Checked results with FIPS test vectors
-    https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/dss/186-2rsatestvectors.zip
+https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/dss/186-2rsatestvectors.zip
     file SigVer15_186-3.rsp
     
  */
 
 library RsaVerify {
-    /** @dev Verifies a PKCSv1.5 SHA256 signature
+    /**
+     * @dev Verifies a PKCSv1.5 SHA256 signature
      * @param _sha256 is the sha256 of the data
      * @param _s is the signature
      * @param _e is the exponent
      * @param _m is the modulus
      * @return true if success, false otherwise
      */
-    function pkcs1Sha256(
-        bytes32 _sha256,
-        bytes memory _s,
-        bytes memory _e,
-        bytes memory _m
-    ) internal view returns (bool) {
-        uint8[17] memory sha256ExplicitNullParam = [
-            0x30,
-            0x31,
-            0x30,
-            0x0d,
-            0x06,
-            0x09,
-            0x60,
-            0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x02,
-            0x01,
-            0x05,
-            0x00
-        ];
+    function pkcs1Sha256(bytes32 _sha256, bytes memory _s, bytes memory _e, bytes memory _m)
+        internal
+        view
+        returns (bool)
+    {
+        uint8[17] memory sha256ExplicitNullParam =
+            [0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00];
 
-        uint8[15] memory sha256ImplicitNullParam = [
-            0x30,
-            0x2f,
-            0x30,
-            0x0b,
-            0x06,
-            0x09,
-            0x60,
-            0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x02,
-            0x01
-        ];
+        uint8[15] memory sha256ImplicitNullParam =
+            [0x30, 0x2f, 0x30, 0x0b, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01];
 
         // decipher
 
-        bytes memory input = bytes.concat(
-            bytes32(_s.length),
-            bytes32(_e.length),
-            bytes32(_m.length),
-            _s,
-            _e,
-            _m
-        );
-        uint inputlen = input.length;
+        bytes memory input = bytes.concat(bytes32(_s.length), bytes32(_e.length), bytes32(_m.length), _s, _e, _m);
+        uint256 inputlen = input.length;
 
-        uint decipherlen = _m.length;
+        uint256 decipherlen = _m.length;
         bytes memory decipher = new bytes(decipherlen);
         assembly {
-            pop(
-                staticcall(
-                    sub(gas(), 2000),
-                    5,
-                    add(input, 0x20),
-                    inputlen,
-                    add(decipher, 0x20),
-                    decipherlen
-                )
-            )
+            pop(staticcall(sub(gas(), 2000), 5, add(input, 0x20), inputlen, add(decipher, 0x20), decipherlen))
         }
 
         // Check that is well encoded:
@@ -113,7 +65,7 @@ library RsaVerify {
         // }
 
         bool hasNullParam;
-        uint digestAlgoWithParamLen;
+        uint256 digestAlgoWithParamLen;
 
         if (uint8(decipher[decipherlen - 50]) == 0x31) {
             hasNullParam = true;
@@ -125,12 +77,12 @@ library RsaVerify {
             return false;
         }
 
-        uint paddingLen = decipherlen - 5 - digestAlgoWithParamLen - 32;
+        uint256 paddingLen = decipherlen - 5 - digestAlgoWithParamLen - 32;
 
         if (decipher[0] != 0 || decipher[1] != 0x01) {
             return false;
         }
-        for (uint i = 2; i < 2 + paddingLen; i++) {
+        for (uint256 i = 2; i < 2 + paddingLen; i++) {
             if (decipher[i] != 0xff) {
                 return false;
             }
@@ -142,20 +94,14 @@ library RsaVerify {
         // check digest algorithm
 
         if (digestAlgoWithParamLen == sha256ExplicitNullParam.length) {
-            for (uint i = 0; i < digestAlgoWithParamLen; i++) {
-                if (
-                    decipher[3 + paddingLen + i] !=
-                    bytes1(sha256ExplicitNullParam[i])
-                ) {
+            for (uint256 i = 0; i < digestAlgoWithParamLen; i++) {
+                if (decipher[3 + paddingLen + i] != bytes1(sha256ExplicitNullParam[i])) {
                     return false;
                 }
             }
         } else {
-            for (uint i = 0; i < digestAlgoWithParamLen; i++) {
-                if (
-                    decipher[3 + paddingLen + i] !=
-                    bytes1(sha256ImplicitNullParam[i])
-                ) {
+            for (uint256 i = 0; i < digestAlgoWithParamLen; i++) {
+                if (decipher[3 + paddingLen + i] != bytes1(sha256ImplicitNullParam[i])) {
                     return false;
                 }
             }
@@ -164,17 +110,14 @@ library RsaVerify {
         // check digest
 
         if (
-            decipher[3 + paddingLen + digestAlgoWithParamLen] != 0x04 ||
-            decipher[4 + paddingLen + digestAlgoWithParamLen] != 0x20
+            decipher[3 + paddingLen + digestAlgoWithParamLen] != 0x04
+                || decipher[4 + paddingLen + digestAlgoWithParamLen] != 0x20
         ) {
             return false;
         }
 
-        for (uint i = 0; i < _sha256.length; i++) {
-            if (
-                decipher[5 + paddingLen + digestAlgoWithParamLen + i] !=
-                _sha256[i]
-            ) {
+        for (uint256 i = 0; i < _sha256.length; i++) {
+            if (decipher[5 + paddingLen + digestAlgoWithParamLen + i] != _sha256[i]) {
                 return false;
             }
         }
@@ -182,19 +125,19 @@ library RsaVerify {
         return true;
     }
 
-    /** @dev Verifies a PKCSv1.5 SHA256 signature
+    /**
+     * @dev Verifies a PKCSv1.5 SHA256 signature
      * @param _data to verify
      * @param _s is the signature
      * @param _e is the exponent
      * @param _m is the modulus
      * @return 0 if success, >0 otherwise
      */
-    function pkcs1Sha256Raw(
-        bytes memory _data,
-        bytes memory _s,
-        bytes memory _e,
-        bytes memory _m
-    ) internal view returns (bool) {
+    function pkcs1Sha256Raw(bytes memory _data, bytes memory _s, bytes memory _e, bytes memory _m)
+        internal
+        view
+        returns (bool)
+    {
         return pkcs1Sha256(sha256(_data), _s, _e, _m);
     }
 }

@@ -4,10 +4,7 @@ pragma solidity ^0.8.20;
 import {RSAOwnerManager} from "~/base/RSAOwnerManager.sol";
 
 contract RSAOwnerManagerMock is RSAOwnerManager {
-    function initialize(
-        bytes memory exponent,
-        bytes memory modulus
-    ) external initializer {
+    function initialize(bytes memory exponent, bytes memory modulus) external initializer {
         __RSAOwnerManager_init(exponent, modulus);
     }
 
@@ -15,12 +12,11 @@ contract RSAOwnerManagerMock is RSAOwnerManager {
         _setOwner(exponent, modulus);
     }
 
-    function $_verifyRSAOwner(
-        bytes memory message,
-        bytes memory signature,
-        bytes memory exponent,
-        bytes memory modulus
-    ) external view returns (bool) {
+    function $_verifyRSAOwner(bytes memory message, bytes memory signature, bytes memory exponent, bytes memory modulus)
+        external
+        view
+        returns (bool)
+    {
         return _verifyRSAOwner(message, signature, exponent, modulus);
     }
 
@@ -34,11 +30,7 @@ contract RSAOwnerManagerMock is RSAOwnerManager {
     }
 
     /// @notice Get EIP-7201 storage
-    function _storage()
-        private
-        pure
-        returns (RSAOwnerManagerStorage storage $)
-    {
+    function _storage() private pure returns (RSAOwnerManagerStorage storage $) {
         assembly {
             $.slot := RSAOwnerManagerStorageLocation
         }

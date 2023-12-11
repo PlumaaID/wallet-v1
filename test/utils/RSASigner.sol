@@ -5,8 +5,7 @@ import {TransactionRequest} from "../mocks/Plumaa.m.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 contract RSASigner {
-    address constant CHEATCODE_ADDRESS =
-        0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
+    address constant CHEATCODE_ADDRESS = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
     Vm private vm = Vm(CHEATCODE_ADDRESS);
 
     PublicKey private _publicKey;
@@ -47,9 +46,7 @@ contract RSASigner {
     }
 
     /// @notice Reads the modulus from the signer's public key
-    function _extractModulus(
-        string memory signer
-    ) private returns (bytes memory) {
+    function _extractModulus(string memory signer) private returns (bytes memory) {
         string[] memory inputBuilder = new string[](255);
         uint8 i = 0;
         inputBuilder[i++] = "bash";

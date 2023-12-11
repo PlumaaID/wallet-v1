@@ -40,10 +40,7 @@ contract BaseTest is Test {
         address _proxy = Upgrades.deployTransparentProxy(
             "Plumaa.m.sol:PlumaaMock",
             address(this),
-            abi.encodeCall(
-                Plumaa.setupPlumaa,
-                (publicKey.exponent, publicKey.modulus, safe)
-            )
+            abi.encodeCall(Plumaa.setupPlumaa, (publicKey.exponent, publicKey.modulus, safe))
         );
         plumaa = PlumaaMock(_proxy);
         _forceEnableModule(address(plumaa));
@@ -61,18 +58,8 @@ contract BaseTest is Test {
         uint48 deadline,
         bytes memory data,
         uint32 nonce
-    )
-        internal
-        returns (Plumaa.TransactionRequestData memory, bytes32 structHash)
-    {
-        structHash = _requestStructHash(
-            to,
-            value,
-            operation,
-            deadline,
-            data,
-            nonce
-        );
+    ) internal returns (Plumaa.TransactionRequestData memory, bytes32 structHash) {
+        structHash = _requestStructHash(to, value, operation, deadline, data, nonce);
         bytes memory signature = signer.sign(abi.encodePacked(structHash));
 
         RSASigner.PublicKey memory publicKey = signer.publicKey();
@@ -118,42 +105,16 @@ contract BaseTest is Test {
         address singleton = address(new SafeMock());
         address[] memory owners = new address[](1);
         owners[0] = address(this);
-        bytes memory data = abi.encodeCall(
-            Safe.setup,
-            (
-                owners,
-                1,
-                address(0),
-                "",
-                address(0),
-                address(0),
-                0,
-                payable(address(0))
-            )
-        );
+        bytes memory data =
+            abi.encodeCall(Safe.setup, (owners, 1, address(0), "", address(0), address(0), 0, payable(address(0))));
 
-        return
-            SafeMock(
-                payable(
-                    address(
-                        factory.createProxyWithNonce(
-                            singleton,
-                            data,
-                            uint256(salt)
-                        )
-                    )
-                )
-            );
+        return SafeMock(payable(address(factory.createProxyWithNonce(singleton, data, uint256(salt)))));
     }
 
     function _forceEnableModule(address module) internal {
         // Enable as a module to bypass signatures
         // https://twitter.com/0xVazi/status/1732187067776696655
-        vm.store(
-            address(safe),
-            keccak256(abi.encode(address(module), 1)),
-            bytes32(uint256(1))
-        );
+        vm.store(address(safe), keccak256(abi.encode(address(module), 1)), bytes32(uint256(1)));
         assertTrue(safe.isModuleEnabled(address(module)));
     }
 }

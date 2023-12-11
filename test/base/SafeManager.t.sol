@@ -33,26 +33,16 @@ contract SafeManagerTests is BaseTest {
     function test_GivenACallFromTheSafe() external whenCallingAnOnlySafeMethod {
         _forceEnableModule(address(this));
         safe.execTransactionFromModule(
-            address(manager),
-            0,
-            abi.encodeWithSelector(manager.onlySafeFn.selector),
-            Enum.Operation.Call
+            address(manager), 0, abi.encodeWithSelector(manager.onlySafeFn.selector), Enum.Operation.Call
         );
     }
 
     /// @notice it throws an error because only the safe is authorized
-    function test_GivenACallFromOtherThanTheSafe(
-        address anyone
-    ) external whenCallingAnOnlySafeMethod {
+    function test_GivenACallFromOtherThanTheSafe(address anyone) external whenCallingAnOnlySafeMethod {
         vm.assume(anyone != address(safe));
 
         vm.prank(anyone);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                SafeManager.SafeManagerUnauthorizedAccount.selector,
-                anyone
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(SafeManager.SafeManagerUnauthorizedAccount.selector, anyone));
         manager.onlySafeFn();
     }
 }
