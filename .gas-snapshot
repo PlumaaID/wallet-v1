@@ -26,3 +26,6 @@ RSAOwnerManagerTest:test_GivenAnInvalidSignature(bytes) (runs: 1000, μ: 55491, 
 RSAOwnerManagerTest:test_WhenCalling_setOwner(bytes,bytes,address) (runs: 1000, μ: 22450, ~: 22388)
 RSAOwnerManagerTest:test_WhenCalling_useOwnerNonce(uint32) (runs: 1000, μ: 35619, ~: 35619)
 RSAOwnerManagerTest:test_WhenInitialized() (gas: 45193)
+SafeManagerTests:test_GivenACallFromOtherThanTheSafe(address) (runs: 1000, μ: 16602, ~: 16602)
+SafeManagerTests:test_GivenACallFromTheSafe() (gas: 27822)
+SafeManagerTests:test_WhenInitialized() (gas: 12385)

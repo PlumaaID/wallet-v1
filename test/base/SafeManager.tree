@@ -1,0 +1,11 @@
+SafeManagerTests
+  ├── when initialized
+  │   └── it sets the initial safe
+  │       └── because it is the first safe
+  └── when calling an onlySafe method
+      ├── given a call from the safe
+      │   └── it calls the method on the safe
+      │       └── because the safe is authorized
+      └── given a call from other than the safe
+          └── it throws an error
+              └── because only the safe is authorized

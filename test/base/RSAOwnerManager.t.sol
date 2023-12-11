@@ -17,6 +17,7 @@ contract RSAOwnerManagerTest is BaseTest {
 
     function setUp() public override {
         super.setUp();
+
         // Enable RSAOwnerModule
         address implementation = Clones.clone(
             address(new RSAOwnerManagerMock())
