@@ -43,8 +43,6 @@ contract PlumaaTest is BaseTest {
     ) external whenSettingOwner {
         vm.assume(anyone != address(safe));
 
-        console2.logAddress(address(plumaa.safe()));
-
         vm.prank(anyone);
         vm.expectRevert(
             abi.encodeWithSelector(
