@@ -47,7 +47,7 @@ contract BaseTest is Test {
         );
         plumaa = PlumaaMock(_proxy);
         _forceEnableModule(address(plumaa));
-        proxyAdmin = computeCreateAddress(address(this), 0);
+        proxyAdmin = computeCreateAddress(address(_proxy), 1);
 
         callerPrivateKey = 0xA11CE;
         caller = vm.addr(callerPrivateKey);
