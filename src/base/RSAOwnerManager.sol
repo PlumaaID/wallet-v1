@@ -20,9 +20,7 @@ abstract contract RSAOwnerManager is Initializable {
     /// @notice Emitted when the owner is changed.
     event OwnershipTransferred(bytes32 indexed previousOwner, bytes32 indexed newOwner);
 
-    // keccak256(abi.encode(uint256(keccak256("plumaa.storage.RSAOwnerManager"))
-    // - 1)) &
-    // ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("plumaa.storage.RSAOwnerManager")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 constant RSAOwnerManagerStorageLocation = 0xd2cca958b80dbad5ce6e876a8c46f66173a169ce6aba515198c38d288b5cc600;
 
     struct RSAOwnerManagerStorage {

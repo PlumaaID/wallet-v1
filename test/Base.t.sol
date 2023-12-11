@@ -2,7 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
+import {ModuleManager} from "@safe/contracts/base/ModuleManager.sol";
 import {TransactionRequest} from "./mocks/Plumaa.m.sol";
+import {PlumaaFactory} from "~/PlumaaFactory.sol";
 import {PlumaaMock} from "./mocks/Plumaa.m.sol";
 import {Safe, SafeMock} from "./mocks/Safe.m.sol";
 import {Enum} from "@safe/contracts/common/Enum.sol";
@@ -13,41 +15,31 @@ import {Upgrades} from "@openzeppelin/foundry-upgrades/Upgrades.sol";
 import {RSASigner} from "./utils/RSASigner.sol";
 
 contract BaseTest is Test {
+    // Signers
     RSASigner internal owner;
     RSASigner internal other;
 
+    /// Factories
+    PlumaaFactory plumaaFactory;
+    SafeProxyFactory safeProxyFactory;
+
+    // Mocks
     PlumaaMock internal plumaa;
     SafeMock internal safe;
     address internal receiver = address(0x1234);
-    address proxyAdmin;
-
-    uint256 internal callerPrivateKey;
-    address internal caller;
-
-    modifier asCaller() {
-        vm.startPrank(caller);
-        _;
-        vm.stopPrank();
-    }
 
     function setUp() public virtual {
         owner = new RSASigner("owner");
         other = new RSASigner("other");
 
-        RSASigner.PublicKey memory publicKey = owner.publicKey();
+        plumaaFactory = new PlumaaFactory();
+        safeProxyFactory = new SafeProxyFactory();
 
-        safe = _deploySafeMock();
-        address _proxy = Upgrades.deployTransparentProxy(
+        address plumaaBeacon = Upgrades.deployBeacon(
             "Plumaa.m.sol:PlumaaMock",
-            address(this),
-            abi.encodeCall(Plumaa.setupPlumaa, (publicKey.exponent, publicKey.modulus, safe))
+            address(this)
         );
-        plumaa = PlumaaMock(_proxy);
-        _forceEnableModule(address(plumaa));
-        proxyAdmin = computeCreateAddress(address(_proxy), 1);
-
-        callerPrivateKey = 0xA11CE;
-        caller = vm.addr(callerPrivateKey);
+        (safe, plumaa) = _deployMocks(address(new SafeMock()), plumaaBeacon);
     }
 
     function _forgeRequestData(
@@ -58,8 +50,18 @@ contract BaseTest is Test {
         uint48 deadline,
         bytes memory data,
         uint32 nonce
-    ) internal returns (Plumaa.TransactionRequestData memory, bytes32 structHash) {
-        structHash = _requestStructHash(to, value, operation, deadline, data, nonce);
+    )
+        internal
+        returns (Plumaa.TransactionRequestData memory, bytes32 structHash)
+    {
+        structHash = _requestStructHash(
+            to,
+            value,
+            operation,
+            deadline,
+            data,
+            nonce
+        );
         bytes memory signature = signer.sign(abi.encodePacked(structHash));
 
         RSASigner.PublicKey memory publicKey = signer.publicKey();
@@ -99,22 +101,72 @@ contract BaseTest is Test {
         return plumaa.structHash(request);
     }
 
-    function _deploySafeMock() private returns (SafeMock) {
-        SafeProxyFactory factory = new SafeProxyFactory();
+    function _deployMocks(
+        address safeSingleton,
+        address plumaaBeacon
+    ) private returns (SafeMock, PlumaaMock) {
         bytes32 salt = keccak256("salt");
-        address singleton = address(new SafeMock());
+
+        RSASigner.PublicKey memory publicKey = owner.publicKey();
+        address payable safeProxy = payable(
+            safeProxyFactory.createProxyWithNonce(
+                safeSingleton,
+                _buildDeploySafeMockData(plumaaBeacon, salt, publicKey),
+                uint256(salt)
+            )
+        );
+
+        address plumaaAddress = plumaaFactory.predictDeterministicAddress(
+            plumaaBeacon,
+            salt,
+            publicKey.exponent,
+            publicKey.modulus,
+            Safe(safeProxy)
+        );
+
+        return (SafeMock(safeProxy), PlumaaMock(plumaaAddress));
+    }
+
+    function _buildDeploySafeMockData(
+        address plumaaBeacon,
+        bytes32 salt,
+        RSASigner.PublicKey memory publicKey
+    ) private view returns (bytes memory) {
         address[] memory owners = new address[](1);
         owners[0] = address(this);
-        bytes memory data =
-            abi.encodeCall(Safe.setup, (owners, 1, address(0), "", address(0), address(0), 0, payable(address(0))));
 
-        return SafeMock(payable(address(factory.createProxyWithNonce(singleton, data, uint256(salt)))));
+        return
+            abi.encodeCall(
+                Safe.setup,
+                (
+                    owners,
+                    1,
+                    address(plumaaFactory),
+                    abi.encodeCall(
+                        PlumaaFactory.safeSetup,
+                        (
+                            plumaaBeacon,
+                            salt,
+                            publicKey.exponent,
+                            publicKey.modulus
+                        )
+                    ),
+                    address(0),
+                    address(0),
+                    0,
+                    payable(0)
+                )
+            );
     }
 
     function _forceEnableModule(address module) internal {
         // Enable as a module to bypass signatures
         // https://twitter.com/0xVazi/status/1732187067776696655
-        vm.store(address(safe), keccak256(abi.encode(address(module), 1)), bytes32(uint256(1)));
+        vm.store(
+            address(safe),
+            keccak256(abi.encode(address(module), 1)),
+            bytes32(uint256(1))
+        );
         assertTrue(safe.isModuleEnabled(address(module)));
     }
 }
