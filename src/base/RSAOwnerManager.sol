@@ -92,8 +92,7 @@ abstract contract RSAOwnerManager is Initializable {
         }
     }
 
-    /// @notice Returns true if the provided public key is an owner of the
-    /// Plumaa.
+    /// @notice Returns true if the provided public key is an owner of the Plumaa.
     /// @param exponent The exponent of the RSA public key.
     /// @param modulus The modulus of the RSA public key.
     function _isRSAOwner(bytes memory exponent, bytes memory modulus) private view returns (bool) {
@@ -101,8 +100,7 @@ abstract contract RSAOwnerManager is Initializable {
     }
 
     /// @notice On the absense of a proper public key, we identify each RSA
-    /// owner by a
-    /// keccak256(modulus, exponent).
+    /// owner by a keccak256(modulus, exponent).
     /// @param exponent The exponent of the RSA public key.
     /// @param modulus The modulus of the RSA public key.
     function _toPublicKeyId(bytes memory exponent, bytes memory modulus) private pure returns (bytes32) {

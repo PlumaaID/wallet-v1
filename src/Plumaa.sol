@@ -7,15 +7,12 @@ import {RSAOwnerManager} from "./base/RSAOwnerManager.sol";
 import {SafeManager} from "./base/SafeManager.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 
-/// @title Plumaa - An RSA SHA256 PKCS1.5 enabler module for Safe{Wallet} Smart
-/// Accounts
+/// @title Plumaa - An RSA SHA256 PKCS1.5 enabler module for Safe{Wallet} Smart Accounts
 contract Plumaa is RSAOwnerManager, SafeManager, EIP712Upgradeable {
-    /// @notice A transaction signed with the Bytes32 owner's private key was
-    /// executed
+    /// @notice A transaction signed with the Bytes32 owner's private key was executed
     event ExecutedRSATransaction(address indexed safe, bytes32 indexed sha256Digest, uint32 nonce, bool success);
 
-    /// @notice The provided message SHA256 digest doesn't match signature for
-    /// exponent and modulus
+    /// @notice The provided message SHA256 digest doesn't match signature for exponent and modulus
     error InvalidRSASignature(bytes32 digest, bytes signature, bytes exponent, bytes modulus);
 
     /// @dev The request `deadline` has expired.
@@ -56,9 +53,8 @@ contract Plumaa is RSAOwnerManager, SafeManager, EIP712Upgradeable {
         __SafeManager_init(safe_);
     }
 
-    /// @notice Executes a transaction from the associated Safe{Wallet} Smart
-    /// Account using an RSA
-    /// PKCS1.5 signature
+    /// @notice Executes a transaction from the associated Safe{Wallet} Smart Account
+    /// using an RSA PKCS1.5 signature
     /// @param request The transaction request
     function executeTransaction(TransactionRequestData calldata request) public virtual returns (bool) {
         if (block.timestamp >= request.deadline) {
@@ -82,10 +78,8 @@ contract Plumaa is RSAOwnerManager, SafeManager, EIP712Upgradeable {
         return success;
     }
 
-    /// @notice Checks if the SHA256 digest of a transaction request
-    /// {_hashTypedDataV4} value is
-    /// signed by the RSA
-    /// owner.
+    /// @notice Checks if the SHA256 digest of a transaction request 
+    /// {_hashTypedDataV4} value is signed by the RSA owner.
     /// @param request The transaction request
     /// @param currentNonce The nonce of the RSA owner
     /// @return valid True if the transaction request is signed by the RSA owner
