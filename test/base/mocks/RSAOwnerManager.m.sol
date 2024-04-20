@@ -32,7 +32,7 @@ contract RSAOwnerManagerMock is RSAOwnerManager {
     /// @notice Get EIP-7201 storage
     function _storage() private pure returns (RSAOwnerManagerStorage storage $) {
         assembly {
-            $.slot := RSAOwnerManagerStorageLocation
+            $.slot := RSA_OWNER_MANAGER_STORAGE_LOCATION
         }
     }
 }

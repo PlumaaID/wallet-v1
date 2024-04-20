@@ -14,20 +14,23 @@ struct TransactionRequest {
 }
 
 contract PlumaaMock is Plumaa {
-    function structHash(TransactionRequest calldata request) external view returns (bytes32) {
-        return _hashTypedDataV4(
-            keccak256(
-                abi.encode(
-                    _TRANSACTION_REQUEST_TYPEHASH,
-                    request.to,
-                    request.value,
-                    request.operation,
-                    request.deadline,
-                    keccak256(request.data),
-                    request.nonce
+    function structHash(
+        TransactionRequest calldata request
+    ) external view returns (bytes32) {
+        return
+            _hashTypedDataV4(
+                keccak256(
+                    abi.encode(
+                        _TRANSACTION_REQUEST_TYPEHASH,
+                        request.to,
+                        request.value,
+                        request.operation,
+                        request.deadline,
+                        keccak256(request.data),
+                        request.nonce
+                    )
                 )
-            )
-        );
+            );
     }
 
     /// @notice Unsafely overrides the nonce
@@ -36,9 +39,13 @@ contract PlumaaMock is Plumaa {
     }
 
     /// @notice Get EIP-7201 storage
-    function _storage() private pure returns (RSAOwnerManagerStorage storage $) {
+    function _storage()
+        private
+        pure
+        returns (RSAOwnerManagerStorage storage $)
+    {
         assembly {
-            $.slot := RSAOwnerManagerStorageLocation
+            $.slot := RSA_OWNER_MANAGER_STORAGE_LOCATION
         }
     }
 }
