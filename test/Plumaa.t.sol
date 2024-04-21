@@ -41,6 +41,8 @@ contract PlumaaTest is BaseTest {
         assertEq(plumaa.threshold(), 1);
         assertEq(plumaa.recoverersLength(), 1);
         assertTrue(plumaa.isAuthorizedRecoverer(address(0)));
+        assertEq(plumaa.safe().getOwners().length, 1);
+        assertEq(plumaa.safe().getOwners()[0], address(plumaa));
     }
 
     modifier whenCallingIsValidSignature() {

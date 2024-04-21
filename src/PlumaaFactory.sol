@@ -12,6 +12,9 @@ contract PlumaaFactory {
     /// @dev Reverts if called directly.
     error PlumaaFactoryOnlyDelegateCall();
 
+    /// @dev The Safe enabling the Plumaa contract is misconfigured.
+    error PlumaaMisconfiguredSafe();
+
     /// @notice Modifier to make a function callable via delegatecall only.
     /// If the function is called via a regular call, it will revert.
     modifier onlyDelegateCall() {
@@ -71,7 +74,17 @@ contract PlumaaFactory {
             )
         );
         safe.enableModule(clone);
-        // safe.swapOwner(prevOwner, oldOwner, newOwner);
+
+        // Restrict the Safe to be owned only by the new Plumaa module
+        address[] memory owners = safe.getOwners();
+        if (owners.length != 1) {
+            revert PlumaaMisconfiguredSafe();
+        }
+        safe.swapOwner(
+            address(0x1), // Sentinel
+            owners[0],
+            clone
+        );
     }
 
     /// @notice Returns the creation code with arguments of a new beacon proxy.
