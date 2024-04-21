@@ -6,40 +6,41 @@ import {RsaVerify} from "../utils/RsaVerify.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
- * @title Modified version of Safe's OwnerManager for bytes32 that includes EIP7201 support.
+ * @title Modified version of Safe's OwnerManager for RSA Public Keys that includes EIP7201 support.
  * [Safe's implementation](https://github.com/safe-global/safe-contracts/blob/main/contracts/base/OwnerManager.sol)
- *
- * An RSA Owner is a public key identified by a `keccak(modulus, exponent)`.
- * @notice This version uses bytes32 instead of address for owners
  */
 abstract contract RSAOwnerManager is Initializable {
     using RsaVerify for bytes32;
 
     /// @notice Emitted when the owner is changed.
     event OwnershipTransferred(
-        bytes32 indexed previousOwner,
-        bytes32 indexed newOwner
+        RSAPublicKey indexed previousOwner,
+        RSAPublicKey indexed newOwner
     );
 
     // keccak256(abi.encode(uint256(keccak256("plumaa.storage.RSAOwnerManager")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant RSA_OWNER_MANAGER_STORAGE_LOCATION =
         0xd2cca958b80dbad5ce6e876a8c46f66173a169ce6aba515198c38d288b5cc600;
 
+    struct RSAPublicKey {
+        bytes exponent;
+        bytes modulus;
+    }
+
     struct RSAOwnerManagerStorage {
-        bytes32 owner;
+        RSAPublicKey owner;
         uint32 nonce;
     }
 
     /// @notice Sets the initial storage of the contract.
     function __RSAOwnerManager_init(
-        bytes memory exponent,
-        bytes memory modulus
+        RSAPublicKey calldata initialOwner
     ) internal onlyInitializing {
-        _setOwner(exponent, modulus);
+        _setOwner(initialOwner);
     }
 
-    /// @notice Returns the current owner of the Plumaa. See {_toPublicKeyId}.
-    function owner() public view returns (bytes32) {
+    /// @notice Returns the current owner of the Plumaa.
+    function owner() public view returns (RSAPublicKey memory) {
         return _getRSAOwnerManagerStorage().owner;
     }
 
@@ -48,13 +49,10 @@ abstract contract RSAOwnerManager is Initializable {
         return _getRSAOwnerManagerStorage().nonce;
     }
 
-    /// @notice Sets a new authorized public key bytes32 id. See {_toPublicKeyId}.
+    /// @notice Sets a new authorized public key as owner.
     /// Beware this internal version doesn't require access control.
-    /// @param exponent The exponent of the RSA public key.
-    /// @param modulus The modulus of the RSA public key.
-    function _setOwner(bytes memory exponent, bytes memory modulus) internal {
-        bytes32 newOwner = _toPublicKeyId(exponent, modulus);
-        bytes32 previousOwner = _getRSAOwnerManagerStorage().owner;
+    function _setOwner(RSAPublicKey memory newOwner) internal {
+        RSAPublicKey memory previousOwner = _getRSAOwnerManagerStorage().owner;
         _getRSAOwnerManagerStorage().owner = newOwner;
         emit OwnershipTransferred(previousOwner, newOwner);
     }
@@ -62,31 +60,31 @@ abstract contract RSAOwnerManager is Initializable {
     /// @notice Returns true if the provided signature is valid for the digest and public key.
     /// @param message The message to verify.
     /// @param signature The signature to verify.
-    /// @param exponent The exponent of the RSA public key.
-    /// @param modulus The modulus of the RSA public key.
+    /// @param publicKey The RSA public key to verify against.
     function _verifyRSAOwner(
         bytes memory message,
         bytes memory signature,
-        bytes memory exponent,
-        bytes memory modulus
+        RSAPublicKey memory publicKey
     ) internal view returns (bool) {
-        return _verifyRSAOwner(sha256(message), signature, exponent, modulus);
+        return _verifyRSAOwner(sha256(message), signature, publicKey);
     }
 
     /// @notice Returns true if the provided signature is valid for the digest and public key.
     /// @param sha256Digest The digest of the message to verify.
     /// @param signature The signature to verify.
-    /// @param exponent The exponent of the RSA public key.
-    /// @param modulus The modulus of the RSA public key.
+    /// @param publicKey The RSA public key to verify against.
     function _verifyRSAOwner(
         bytes32 sha256Digest,
         bytes memory signature,
-        bytes memory exponent,
-        bytes memory modulus
+        RSAPublicKey memory publicKey
     ) internal view returns (bool) {
         return
-            _isRSAOwner(exponent, modulus) &&
-            sha256Digest.pkcs1Sha256(signature, exponent, modulus);
+            _isRSAOwner(publicKey) &&
+            sha256Digest.pkcs1Sha256(
+                signature,
+                publicKey.exponent,
+                publicKey.modulus
+            );
     }
 
     /// @notice Consumes a nonce.
@@ -98,26 +96,21 @@ abstract contract RSAOwnerManager is Initializable {
         }
     }
 
-    /// @notice Returns true if the provided public key is an owner of the Plumaa.
-    /// @param exponent The exponent of the RSA public key.
-    /// @param modulus The modulus of the RSA public key.
+    /// @notice Returns true if the provided public key is the owner of the Plumaa.
     function _isRSAOwner(
-        bytes memory exponent,
-        bytes memory modulus
+        RSAPublicKey memory publicKey
     ) private view returns (bool) {
         return
-            _getRSAOwnerManagerStorage().owner ==
-            _toPublicKeyId(exponent, modulus);
+            _toRSAPublicKeyId(_getRSAOwnerManagerStorage().owner) ==
+            _toRSAPublicKeyId(publicKey);
     }
 
-    /// @notice On the absense of a proper public key, we identify each RSA owner by a keccak256(modulus, exponent).
-    /// @param exponent The exponent of the RSA public key.
-    /// @param modulus The modulus of the RSA public key.
-    function _toPublicKeyId(
-        bytes memory exponent,
-        bytes memory modulus
+    /// @notice For comparison purposes, returns the keccak256 hash of the public key components.
+    function _toRSAPublicKeyId(
+        RSAPublicKey memory publicKey
     ) private pure returns (bytes32) {
-        return keccak256(abi.encodePacked(exponent, modulus));
+        return
+            keccak256(abi.encodePacked(publicKey.exponent, publicKey.modulus));
     }
 
     /// @notice Get EIP-7201 storage
@@ -126,7 +119,7 @@ abstract contract RSAOwnerManager is Initializable {
         pure
         returns (RSAOwnerManagerStorage storage $)
     {
-        assembly {
+        assembly ("memory-safe") {
             $.slot := RSA_OWNER_MANAGER_STORAGE_LOCATION
         }
     }

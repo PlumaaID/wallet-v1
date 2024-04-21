@@ -9,7 +9,7 @@ import {PlumaaMock} from "./mocks/Plumaa.m.sol";
 import {Safe, SafeMock} from "./mocks/Safe.m.sol";
 import {Enum} from "@safe/contracts/common/Enum.sol";
 import {SafeProxyFactory} from "@safe/contracts/proxies/SafeProxyFactory.sol";
-import {Plumaa} from "~/Plumaa.sol";
+import {Plumaa, RSAOwnerManager} from "~/Plumaa.sol";
 import {console2} from "forge-std/console2.sol";
 import {Upgrades} from "@openzeppelin/foundry-upgrades/Upgrades.sol";
 import {RSASigner} from "./utils/RSASigner.sol";
@@ -64,8 +64,6 @@ contract BaseTest is Test {
         );
         bytes memory signature = signer.sign(abi.encodePacked(structHash));
 
-        RSASigner.PublicKey memory publicKey = signer.publicKey();
-
         return (
             Plumaa.TransactionRequestData({
                 to: to,
@@ -73,9 +71,7 @@ contract BaseTest is Test {
                 operation: operation,
                 deadline: deadline,
                 data: data,
-                signature: signature,
-                exponent: publicKey.exponent,
-                modulus: publicKey.modulus
+                signature: signature
             }),
             structHash
         );
@@ -107,11 +103,20 @@ contract BaseTest is Test {
     ) private returns (SafeMock, PlumaaMock) {
         bytes32 salt = keccak256("salt");
 
-        RSASigner.PublicKey memory publicKey = owner.publicKey();
+        uint256 recoveryThreshold = 1;
+        address[] memory authorizedRecoverers = new address[](1);
+
+        RSAOwnerManager.RSAPublicKey memory publicKey = owner.publicKey();
         address payable safeProxy = payable(
             safeProxyFactory.createProxyWithNonce(
                 safeSingleton,
-                _buildDeploySafeMockData(plumaaBeacon, salt, publicKey),
+                _buildDeploySafeMockData(
+                    plumaaBeacon,
+                    salt,
+                    publicKey,
+                    recoveryThreshold,
+                    authorizedRecoverers
+                ),
                 uint256(salt)
             )
         );
@@ -119,9 +124,10 @@ contract BaseTest is Test {
         address plumaaAddress = plumaaFactory.predictDeterministicAddress(
             plumaaBeacon,
             salt,
-            publicKey.exponent,
-            publicKey.modulus,
-            Safe(safeProxy)
+            publicKey,
+            Safe(safeProxy),
+            recoveryThreshold,
+            authorizedRecoverers
         );
 
         return (SafeMock(safeProxy), PlumaaMock(plumaaAddress));
@@ -130,7 +136,9 @@ contract BaseTest is Test {
     function _buildDeploySafeMockData(
         address plumaaBeacon,
         bytes32 salt,
-        RSASigner.PublicKey memory publicKey
+        RSAOwnerManager.RSAPublicKey memory publicKey,
+        uint256 recoveryThreshold,
+        address[] memory authorizedRecoverers
     ) private view returns (bytes memory) {
         address[] memory owners = new address[](1);
         owners[0] = address(this);
@@ -147,8 +155,9 @@ contract BaseTest is Test {
                         (
                             plumaaBeacon,
                             salt,
-                            publicKey.exponent,
-                            publicKey.modulus
+                            publicKey,
+                            recoveryThreshold,
+                            authorizedRecoverers
                         )
                     ),
                     address(0),

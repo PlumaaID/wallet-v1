@@ -31,63 +31,51 @@ contract PlumaaTest is BaseTest {
         _defaultNonce = 0;
     }
 
-    modifier whenSettingOwner() {
+    /// @notice it should be initialized
+    function test_WhenInitialized() external {
+        RSAOwnerManager.RSAPublicKey memory ownerPublicKey = owner.publicKey();
+        bytes32 publicKeyId = toPublicKeyId(ownerPublicKey);
+        RSAOwnerManager.RSAPublicKey memory plumaaOwner = plumaa.owner();
+        assertEq(toPublicKeyId(plumaaOwner), publicKeyId);
+        assertEq(plumaa.nonce(), 0);
+        assertEq(plumaa.threshold(), 1);
+        assertEq(plumaa.recoverersLength(), 1);
+        assertTrue(plumaa.isAuthorizedRecoverer(address(0)));
+    }
+
+    modifier whenCallingIsValidSignature() {
         _;
     }
 
-    /// @notice it reverts because the sender is not the owner
-    function test_GivenANonSafeOwner(
-        address anyone,
-        bytes memory exponent,
-        bytes memory modulus
-    ) external whenSettingOwner {
-        vm.assume(anyone != address(safe));
-
-        vm.prank(anyone);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                SafeManager.SafeManagerUnauthorizedAccount.selector,
-                anyone
-            )
+    /// @notice it reverts because the signature is invalid
+    function test_GivenAnInvalidSignature()
+        external
+        whenCallingIsValidSignature
+    {
+        bytes4 magicValue = plumaa.isValidSignature(
+            keccak256("invalid message"),
+            owner.sign(abi.encodePacked("something else"))
         );
-        plumaa.setOwner(exponent, modulus);
+
+        assertEq(magicValue, bytes4(0));
     }
 
-    /// @notice it sets the owner because the sender is the owner
-    function test_GivenTheSafeOwner(
-        bytes memory exponent,
-        bytes memory modulus
-    ) external whenSettingOwner {
-        bytes32 publicKeyId = keccak256(abi.encodePacked(exponent, modulus));
-        vm.expectEmit(true, true, false, false);
-        emit RSAOwnerManager.OwnershipTransferred(plumaa.owner(), publicKeyId);
-        _forceEnableModule(address(this));
-        safe.execTransactionFromModule(
-            address(plumaa),
-            0,
-            abi.encodeWithSelector(plumaa.setOwner.selector, exponent, modulus),
-            Enum.Operation.Call
+    /// @notice  it returns true because the sender is the owner
+    function test_GivenAValidSignature() external whenCallingIsValidSignature {
+        bytes32 digest = keccak256("valid message");
+        bytes4 magicValue = plumaa.isValidSignature(
+            digest,
+            owner.sign(abi.encodePacked(digest))
         );
-        assertEq(plumaa.owner(), publicKeyId);
-    }
 
-    /// @notice it should be initialized
-    function test_WhenInitialized() external {
-        RSASigner.PublicKey memory ownerPublicKey = owner.publicKey();
-        bytes32 publicKeyId = keccak256(
-            abi.encodePacked(ownerPublicKey.exponent, ownerPublicKey.modulus)
-        );
-        assertEq(plumaa.owner(), publicKeyId);
-        assertEq(plumaa.nonce(), 0);
+        assertEq(magicValue, Plumaa.isValidSignature.selector);
     }
 
     modifier whenCallingVerifyRSAOwnerTransactionRequest() {
         _;
     }
 
-    /// @notice it should return false because the calculated digest doesn't
-    /// match the signed struct
-    /// hash
+    /// @notice it should return false because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedVerifyingTo(
         address to
     ) external whenCallingVerifyRSAOwnerTransactionRequest {
@@ -109,9 +97,7 @@ contract PlumaaTest is BaseTest {
         assertNotEq(digest, _toDigest(structHash));
     }
 
-    /// @notice it should return false because the calculated digest doesn't
-    /// match the signed struct
-    /// hash
+    /// @notice it should return false because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedVerifyingValue(
         uint256 value
     ) external whenCallingVerifyRSAOwnerTransactionRequest {
@@ -133,9 +119,7 @@ contract PlumaaTest is BaseTest {
         assertNotEq(digest, _toDigest(structHash));
     }
 
-    /// @notice it should return false because the calculated digest doesn't
-    /// match the signed struct
-    /// hash
+    /// @notice it should return false because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedVerifyingOperation()
         external
         whenCallingVerifyRSAOwnerTransactionRequest
@@ -157,9 +141,7 @@ contract PlumaaTest is BaseTest {
         assertNotEq(digest, _toDigest(structHash));
     }
 
-    /// @notice it should return false because the calculated digest doesn't
-    /// match the signed struct
-    /// hash
+    /// @notice it should return false because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedVerifyingDeadline(
         uint48 deadline
     ) external whenCallingVerifyRSAOwnerTransactionRequest {
@@ -181,9 +163,7 @@ contract PlumaaTest is BaseTest {
         assertNotEq(digest, _toDigest(structHash));
     }
 
-    /// @notice it should return false because the calculated digest doesn't
-    /// match the signed struct
-    /// hash
+    /// @notice it should return false because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedVerifyingData(
         bytes memory data
     ) external whenCallingVerifyRSAOwnerTransactionRequest {
@@ -210,9 +190,7 @@ contract PlumaaTest is BaseTest {
         assertNotEq(digest, _toDigest(structHash));
     }
 
-    /// @notice it should return false because the calculated digest doesn't
-    /// match the signed struct
-    /// hash
+    /// @notice it should return false because the calculated digest doesn't match the signed struct hash
     function test_GivenAnInvalidVerifyingNonce(
         uint32 nonce
     ) external whenCallingVerifyRSAOwnerTransactionRequest {
@@ -232,8 +210,7 @@ contract PlumaaTest is BaseTest {
         assertNotEq(digest, _toDigest(structHash));
     }
 
-    /// @notice it should return false because the signature doesn't correspond
-    /// to a valid owner
+    /// @notice it should return false because the signature doesn't correspond to a valid owner
     function test_GivenATamperedVerifyingSignature(
         bytes memory signature
     ) external whenCallingVerifyRSAOwnerTransactionRequest {
@@ -253,9 +230,7 @@ contract PlumaaTest is BaseTest {
         assertEq(digest, _toDigest(structHash));
     }
 
-    /// @notice it should return false because the calculated digest doesn't
-    /// match the signed struct
-    /// hash
+    /// @notice it should return false because the calculated digest doesn't match the signed struct hash
     function test_GivenAnInvalidVerifyingOwner(
         address to,
         uint256 value,
@@ -288,8 +263,7 @@ contract PlumaaTest is BaseTest {
         assertEq(digest, _toDigest(structHash));
     }
 
-    /// @notice it should return true because the calculated digest matches the
-    /// signed struct hash
+    /// @notice it should return true because the calculated digest matches the signed struct hash
     function test_GivenAValidVerifyingOwner(
         address to,
         uint256 value,
@@ -361,8 +335,7 @@ contract PlumaaTest is BaseTest {
         _;
     }
 
-    /// @notice it should revert because the calculated digest doesn't match the
-    /// signed struct hash
+    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedExecutingTo(
         address to
     ) external whenCallingExecuteTransaction givenAValidRequest {
@@ -388,16 +361,13 @@ contract PlumaaTest is BaseTest {
             abi.encodeWithSelector(
                 Plumaa.InvalidRSASignature.selector,
                 _toDigest(structHash),
-                request.signature,
-                request.exponent,
-                request.modulus
+                request.signature
             )
         );
         plumaa.executeTransaction(request);
     }
 
-    /// @notice it should revert because the calculated digest doesn't match the
-    /// signed struct hash
+    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedExecutingValue(
         uint256 value
     ) external whenCallingExecuteTransaction givenAValidRequest {
@@ -423,16 +393,13 @@ contract PlumaaTest is BaseTest {
             abi.encodeWithSelector(
                 Plumaa.InvalidRSASignature.selector,
                 _toDigest(structHash),
-                request.signature,
-                request.exponent,
-                request.modulus
+                request.signature
             )
         );
         plumaa.executeTransaction(request);
     }
 
-    /// @notice it should revert because the calculated digest doesn't match the
-    /// signed struct hash
+    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedExecutingOperation()
         external
         whenCallingExecuteTransaction
@@ -459,16 +426,13 @@ contract PlumaaTest is BaseTest {
             abi.encodeWithSelector(
                 Plumaa.InvalidRSASignature.selector,
                 _toDigest(structHash),
-                request.signature,
-                request.exponent,
-                request.modulus
+                request.signature
             )
         );
         plumaa.executeTransaction(request);
     }
 
-    /// @notice it should revert because the calculated digest doesn't match the
-    /// signed struct hash
+    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedExecutingDeadline(
         uint48 deadline
     ) external whenCallingExecuteTransaction givenAValidRequest {
@@ -495,16 +459,13 @@ contract PlumaaTest is BaseTest {
             abi.encodeWithSelector(
                 Plumaa.InvalidRSASignature.selector,
                 _toDigest(structHash),
-                request.signature,
-                request.exponent,
-                request.modulus
+                request.signature
             )
         );
         plumaa.executeTransaction(request);
     }
 
-    /// @notice it should revert because the calculated digest doesn't match the
-    /// signed struct hash
+    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedExecutingData(
         bytes memory data
     ) external whenCallingExecuteTransaction givenAValidRequest {
@@ -535,16 +496,13 @@ contract PlumaaTest is BaseTest {
             abi.encodeWithSelector(
                 Plumaa.InvalidRSASignature.selector,
                 _toDigest(structHash),
-                request.signature,
-                request.exponent,
-                request.modulus
+                request.signature
             )
         );
         plumaa.executeTransaction(request);
     }
 
-    /// @notice it should revert because the calculated digest doesn't match the
-    /// signed struct hash
+    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
     function test_GivenAnInvalidExecutingNonce(
         uint32 nonce
     ) external whenCallingExecuteTransaction givenAValidRequest {
@@ -573,16 +531,13 @@ contract PlumaaTest is BaseTest {
             abi.encodeWithSelector(
                 Plumaa.InvalidRSASignature.selector,
                 _toDigest(structHash),
-                request.signature,
-                request.exponent,
-                request.modulus
+                request.signature
             )
         );
         plumaa.executeTransaction(request);
     }
 
-    /// @notice it should revert because the calculated digest doesn't match the
-    /// signed struct hash
+    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
     function test_GivenATamperedExecutingSignature(
         bytes memory signature
     ) external whenCallingExecuteTransaction givenAValidRequest {
@@ -597,16 +552,13 @@ contract PlumaaTest is BaseTest {
             abi.encodeWithSelector(
                 Plumaa.InvalidRSASignature.selector,
                 _toDigest(structHash),
-                request.signature,
-                request.exponent,
-                request.modulus
+                request.signature
             )
         );
         plumaa.executeTransaction(request);
     }
 
-    /// @notice it should revert because the calculated digest doesn't match the
-    /// signed struct hash
+    /// @notice it should revert because the calculated digest doesn't match the signed struct hash
     function test_GivenAnInvalidExecutingOwner()
         external
         whenCallingExecuteTransaction
@@ -621,16 +573,13 @@ contract PlumaaTest is BaseTest {
             abi.encodeWithSelector(
                 Plumaa.InvalidRSASignature.selector,
                 _toDigest(structHash),
-                request.signature,
-                request.exponent,
-                request.modulus
+                request.signature
             )
         );
         plumaa.executeTransaction(request);
     }
 
-    /// @notice Tests that a transaction can be executed only if the signature
-    /// is valid.
+    /// @notice Tests that a transaction can be executed only if the signature is valid.
     function test_GivenAValidExecutingOwner(
         uint256 value,
         bytes calldata data,
@@ -680,6 +629,282 @@ contract PlumaaTest is BaseTest {
         assertEq(currentNonce + 1, plumaa.nonce());
     }
 
+    modifier whenSettingOwner() {
+        _;
+    }
+
+    /// @notice it reverts because the sender is not the owner
+    function test_GivenANonSafeOwner(
+        address anyone,
+        RSAOwnerManager.RSAPublicKey memory publicKey
+    ) external whenSettingOwner {
+        vm.assume(anyone != address(safe));
+
+        vm.prank(anyone);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SafeManager.SafeManagerUnauthorizedAccount.selector,
+                anyone
+            )
+        );
+        plumaa.setOwner(publicKey);
+    }
+
+    /// @notice it sets the owner because the sender is the owner
+    function test_GivenTheSafeOwner(
+        RSAOwnerManager.RSAPublicKey memory publicKey
+    ) external whenSettingOwner {
+        vm.expectEmit(true, true, false, false);
+        emit RSAOwnerManager.OwnershipTransferred(plumaa.owner(), publicKey);
+        _forceEnableModule(address(this));
+        safe.execTransactionFromModule(
+            address(plumaa),
+            0,
+            abi.encodeWithSelector(plumaa.setOwner.selector, publicKey),
+            Enum.Operation.Call
+        );
+        assertEq(toPublicKeyId(plumaa.owner()), toPublicKeyId(publicKey));
+    }
+
+    modifier whenCallingAuthorizeRecoverer() {
+        _;
+    }
+
+    /// @notice it authorizes the recoverer because the call comes from the safe
+    function test_GivenTheAuthorizerIsTheSafe(
+        address toAuthorize
+    ) external whenCallingAuthorizeRecoverer {
+        _forceEnableModule(address(this));
+        safe.execTransactionFromModule(
+            address(plumaa),
+            0,
+            abi.encodeWithSelector(
+                plumaa.authorizeRecoverer.selector,
+                toAuthorize,
+                plumaa.threshold()
+            ),
+            Enum.Operation.Call
+        );
+        assertTrue(plumaa.isAuthorizedRecoverer(toAuthorize));
+    }
+
+    /// @notice it fails because the call does not come from the safe
+    function test_GivenTheAuthorizerIsNotTheSafe(
+        address toAuthorize,
+        address anyone
+    ) external whenCallingAuthorizeRecoverer {
+        vm.assume(anyone != address(safe));
+        uint256 threshold = plumaa.threshold();
+        vm.prank(anyone);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SafeManager.SafeManagerUnauthorizedAccount.selector,
+                anyone
+            )
+        );
+        plumaa.authorizeRecoverer(toAuthorize, threshold);
+    }
+
+    modifier whenCallingRevokeRecoverer(address authorized) {
+        if (plumaa.isAuthorizedRecoverer(authorized)) return; // Already authorized
+        _forceEnableModule(address(this));
+        safe.execTransactionFromModule(
+            address(plumaa),
+            0,
+            abi.encodeWithSelector(
+                plumaa.revokeRecoverer.selector,
+                authorized,
+                plumaa.threshold()
+            ),
+            Enum.Operation.Call
+        );
+        _;
+    }
+
+    /// @notice it revokes the recoverer because the call comes from the safe
+    function test_GivenTheRevokerIsTheSafe(
+        address authorized
+    ) external whenCallingRevokeRecoverer(authorized) {
+        _forceEnableModule(address(this));
+        safe.execTransactionFromModule(
+            address(plumaa),
+            0,
+            abi.encodeWithSelector(
+                plumaa.revokeRecoverer.selector,
+                authorized,
+                plumaa.threshold()
+            ),
+            Enum.Operation.Call
+        );
+        assertFalse(plumaa.isAuthorizedRecoverer(authorized));
+    }
+
+    /// @notice it fails because the call does not come from the safe
+    function test_GivenTheRevokerIsNotTheSafe(
+        address authorized,
+        address anyone
+    ) external whenCallingRevokeRecoverer(authorized) {
+        vm.assume(anyone != address(safe));
+        uint256 threshold = plumaa.threshold();
+        vm.prank(anyone);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SafeManager.SafeManagerUnauthorizedAccount.selector,
+                anyone
+            )
+        );
+        plumaa.revokeRecoverer(authorized, threshold);
+    }
+
+    modifier whenCallingSwapRecoverer(address authorized) {
+        _forceEnableModule(address(this));
+        safe.execTransactionFromModule(
+            address(plumaa),
+            0,
+            abi.encodeWithSelector(
+                plumaa.revokeRecoverer.selector,
+                authorized,
+                plumaa.threshold()
+            ),
+            Enum.Operation.Call
+        );
+        _;
+    }
+
+    /// @notice it swaps the recoverer for the new one because the call comes from the safe
+    function test_GivenTheSwapperIsTheSafe(
+        address authorized,
+        address toAuthorize
+    ) external whenCallingSwapRecoverer(authorized) {
+        _forceEnableModule(address(this));
+        safe.execTransactionFromModule(
+            address(plumaa),
+            0,
+            abi.encodeWithSelector(
+                plumaa.swapRecoverer.selector,
+                authorized,
+                toAuthorize
+            ),
+            Enum.Operation.Call
+        );
+        assertFalse(plumaa.isAuthorizedRecoverer(authorized));
+        assertTrue(plumaa.isAuthorizedRecoverer(toAuthorize));
+    }
+
+    /// @notice it fails because the call does not come from the safe
+    function test_GivenTheSwapperIsNotTheSafe(
+        address authorized,
+        address toAuthorize,
+        address anyone
+    ) external whenCallingSwapRecoverer(authorized) {
+        vm.prank(anyone);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SafeManager.SafeManagerUnauthorizedAccount.selector,
+                anyone
+            )
+        );
+        plumaa.swapRecoverer(authorized, toAuthorize);
+    }
+
+    modifier whenCallingChangeThreshold(address[] memory initialRecoverers) {
+        uint256 length = bound(initialRecoverers.length, 0, 10); // To avoid gas exhaustion
+        for (uint256 i = 0; i < length; i++) {
+            plumaa.unsafeAuthorizeRecoverer(initialRecoverers[i]);
+        }
+        _;
+    }
+
+    /// @notice it swaps the recoverer for the new one because the call comes from the safe
+    function test_GivenTheCallerIsTheSafe(
+        uint256 newThreshold,
+        address[] memory initialRecoverers
+    ) external whenCallingChangeThreshold(initialRecoverers) {
+        newThreshold = bound(newThreshold, 1, plumaa.recoverersLength());
+        _forceEnableModule(address(this));
+        safe.execTransactionFromModule(
+            address(plumaa),
+            0,
+            abi.encodeWithSelector(
+                plumaa.changeThreshold.selector,
+                newThreshold
+            ),
+            Enum.Operation.Call
+        );
+        assertEq(plumaa.threshold(), newThreshold);
+    }
+
+    /// @notice it fails because the call does not come from the safe
+    function test_GivenTheCallerIsNotTheSafe(
+        uint256 newThreshold,
+        address[] memory initialRecoverers,
+        address anyone
+    ) external whenCallingChangeThreshold(initialRecoverers) {
+        vm.prank(anyone);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SafeManager.SafeManagerUnauthorizedAccount.selector,
+                anyone
+            )
+        );
+        plumaa.changeThreshold(newThreshold);
+    }
+
+    struct RecoveryEOASigner {
+        address signer;
+        uint256 privateKey;
+        bytes recoverySignature;
+    }
+
+    RecoveryEOASigner[] internal signers;
+
+    modifier whenCallingRecover(
+        string[] memory signerNames,
+        RSAOwnerManager.RSAPublicKey memory publicKey
+    ) {
+        vm.assume(signerNames.length > 1);
+        uint256 signersLength = bound(signerNames.length, 2, 10); // To avoid gas exhaustion
+        bytes32 typehash = plumaa.recoverStructHash(publicKey);
+
+        for (uint256 i = 0; i < signersLength; i++) {
+            (address signer, uint256 privateKey) = makeAddrAndKey(
+                string(abi.encodePacked(signerNames[i], i))
+            );
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, typehash);
+            bytes memory signature = abi.encodePacked(r, s, v);
+            RecoveryEOASigner memory eoaSigner = RecoveryEOASigner({
+                signer: signer,
+                privateKey: privateKey,
+                recoverySignature: signature
+            });
+            signers.push(eoaSigner);
+            plumaa.unsafeAuthorizeRecoverer(signer);
+        }
+        _;
+    }
+
+    /// @notice it changes the public key owner because the recover is authorized by the recoverers
+    function test_GivenValidSignatures(
+        uint256 threshold,
+        string[] memory signerNames,
+        RSAOwnerManager.RSAPublicKey memory publicKey
+    ) external whenCallingRecover(signerNames, publicKey) {
+        threshold = bound(threshold, 1, signers.length);
+        plumaa.unsafeSetThreshold(threshold);
+
+        address[] memory _signers = new address[](threshold);
+        for (uint256 i = 0; i < threshold; i++) {
+            _signers[i] = signers[i].signer;
+        }
+        bytes[] memory _signatures = new bytes[](threshold);
+        for (uint256 i = 0; i < threshold; i++) {
+            _signatures[i] = signers[i].recoverySignature;
+        }
+
+        plumaa.recover(_signers, _signatures, publicKey);
+        assertEq(toPublicKeyId(plumaa.owner()), toPublicKeyId(publicKey));
+    }
+
     /// @notice Returns the default request data.
     function _forgeDefaultRequestData(
         RSASigner signer
@@ -705,5 +930,12 @@ contract PlumaaTest is BaseTest {
     /// @notice Applies sha256 to `structHash` so the digest is PKCS8 compliant
     function _toDigest(bytes32 structHash) private pure returns (bytes32) {
         return sha256(abi.encodePacked(structHash));
+    }
+
+    function toPublicKeyId(
+        RSAOwnerManager.RSAPublicKey memory publicKey
+    ) private pure returns (bytes32) {
+        return
+            keccak256(abi.encodePacked(publicKey.exponent, publicKey.modulus));
     }
 }

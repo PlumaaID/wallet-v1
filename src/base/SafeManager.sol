@@ -46,7 +46,7 @@ contract SafeManager is Initializable {
         pure
         returns (SafeManagerStorage storage $)
     {
-        assembly {
+        assembly ("memory-safe") {
             $.slot := SAFE_MANAGER_STORAGE_LOCATION
         }
     }

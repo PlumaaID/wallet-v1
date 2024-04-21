@@ -1,0 +1,64 @@
+RecoveryManagerTest
+  ├── when initialized
+  │   ├── given a threshold smaller than the recoverers length and non-zero
+  │   │   └── it sets the initial threshold and signers
+  │   │       └── because the threshold is valid
+  │   ├── given a threshold higher than recoverers length
+  │   │   └── it reverts
+  │   │       └── because the threshold is invalid
+  │   └── given a zero threshold
+  │       └── it reverts
+  │           └── because the threshold is invalid
+  ├── when calling _authorizeRecoverer
+  │   ├── given a valid new threshold after authorization
+  │   │   └── it sets the new threshold and authorizes the recoverer
+  │   │       └── because the threshold is valid
+  │   ├── given a new threshold higher than the recoverers length after authorization
+  │   │   └── it reverts
+  │   │       └── because the new threshold is invalid
+  │   └── given a new threshold equal to zero after authorization
+  │       └── it reverts
+  │           └── because the new threshold is invalid
+  ├── when calling _revokeRecoverer
+  │   ├── given a valid new threshold after revoking
+  │   │   └── it sets the new threshold and revokes the recoverer
+  │   │       └── because the threshold is valid
+  │   ├── given a new threshold higher than the recoverers length after revoking
+  │   │   └── it reverts
+  │   │       └── because the new threshold is invalid
+  │   └── given a new threshold equal to zero after revoking
+  │       └── it reverts
+  │           └── because the new threshold is invalid
+  ├── when calling _swapRecoverer
+  │   └── it swaps the recoverers
+  │       └── because the new recoverer is valid
+  ├── when calling _changeThreshold
+  │   ├── given a valid new threshold
+  │   │   └── it sets the new threshold
+  │   │       └── because the threshold is valid
+  │   ├── given a new threshold higher than the recoverers length
+  │   │   └── it reverts
+  │   │       └── because the new threshold is invalid
+  │   └── given a new threshold equal to zero
+  │       └── it reverts
+  │           └── because the new threshold is invalid 
+  └── when calling _validateRecovery
+      ├── given signatures length smaller than the threshold
+      │   └── it reverts
+      │       └── because the threshold is not met
+      ├── given no signatures 
+      │   └── it reverts
+      │       └── because there are no valid signatures
+      └── given a valid amount of signatures
+          ├── given valid signatures
+          │   └── it returns true
+          │       └── because the threshold is met
+          ├── given invalid signatures
+          │   └── it reverts
+          │       └── because there is at least one invalid signature
+          ├── given duplicated signatures
+          │   └── it reverts
+          │       └── because there is at least one duplicated signature
+          └── given unauthorized signatures
+              └── it reverts
+                  └── because there is at least one unauthorized signature

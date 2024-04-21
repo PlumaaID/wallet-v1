@@ -1,14 +1,14 @@
 PlumaaTest
-├── when setting owner
-│   ├── given a non safe owner
-│   │   └── it reverts
-│   │       └── because the sender is not the owner
-│   └── given the safe owner
-│       └── it sets the owner
-│           └── because the sender is the owner
 ├── when initialized
 │   └── it sets the owner and nonce
 │      └── because the contract is initialized
+├── when calling isValidSignature
+│   ├── given an invalid signature
+│   │   └── it reverts
+│   │       └── because the signature is invalid
+│   └── given a valid signature
+│       └── it returns true
+│           └── because the sender is the owner
 ├── when calling verifyRSAOwnerTransactionRequest
 │   ├── given a tampered verifying to
 │   │   └── it returns false
@@ -37,35 +37,74 @@ PlumaaTest
 │   └── given a valid verifying owner
 │       └── it returns true
 │           └── because the calculated digest matches the signed struct hash
-└── when calling executeTransaction
-    ├── given a expired request
-    │   └── it reverts
-    │       └── because the request is no longer valid
-    └── given a valid request
-        ├── given a tampered executing to
-        │   └── it reverts
-        │       └── because the calculated digest doesn't match the signed struct hash
-        ├── given a tampered executing value
-        │   └── it reverts
-        │       └── because the calculated digest doesn't match the signed struct hash
-        ├── given a tampered executing operation
-        │   └── it reverts
-        │       └── because the calculated digest doesn't match the signed struct hash
-        ├── given a tampered executing deadline
-        │   └── it reverts
-        │       └── because the calculated digest doesn't match the signed struct hash
-        ├── given a tampered executing data
-        │   └── it reverts
-        │       └── because the calculated digest doesn't match the signed struct hash
-        ├── given an invalid executing nonce
-        │   └── it reverts
-        │       └── because the calculated digest doesn't match the signed struct hash
-        ├── given a tampered executing signature
-        │   └── it reverts
-        │       └── because the calculated digest doesn't match the signed struct hash
-        ├── given an invalid executing owner
-        │   └── it reverts
-        │       └── because the calculated digest doesn't match the signed struct hash
-        └── given a valid executing owner
-            └── it executes the transaction
-                └── because the calculated digest matches the signed struct hash
+├── when calling executeTransaction
+│   ├── given a expired request
+│   │   └── it reverts
+│   │       └── because the request is no longer valid
+│   └── given a valid request
+│       ├── given a tampered executing to
+│       │   └── it reverts
+│       │       └── because the calculated digest doesn't match the signed struct hash
+│       ├── given a tampered executing value
+│       │   └── it reverts
+│       │       └── because the calculated digest doesn't match the signed struct hash
+│       ├── given a tampered executing operation
+│       │   └── it reverts
+│       │       └── because the calculated digest doesn't match the signed struct hash
+│       ├── given a tampered executing deadline
+│       │   └── it reverts
+│       │       └── because the calculated digest doesn't match the signed struct hash
+│       ├── given a tampered executing data
+│       │   └── it reverts
+│       │       └── because the calculated digest doesn't match the signed struct hash
+│       ├── given an invalid executing nonce
+│       │   └── it reverts
+│       │       └── because the calculated digest doesn't match the signed struct hash
+│       ├── given a tampered executing signature
+│       │   └── it reverts
+│       │       └── because the calculated digest doesn't match the signed struct hash
+│       ├── given an invalid executing owner
+│       │   └── it reverts
+│       │       └── because the calculated digest doesn't match the signed struct hash
+│       └── given a valid executing owner
+│           └── it executes the transaction
+│               └── because the calculated digest matches the signed struct hash
+├── when setting owner
+│   ├── given a non safe owner
+│   │   └── it reverts
+│   │       └── because the sender is not the owner
+│   └── given the safe owner
+│       └── it sets the owner
+│           └── because the sender is the owner
+├── when calling authorizeRecoverer
+│   ├── given the authorizer is the safe
+│   │   └── it authorizes the recoverer
+│   │       └── because the call comes from the safe
+│   └── given the authorizer is not the safe
+│       └── it fails
+│           └── because the call does not come from the safe
+├── when calling revokeRecoverer
+│   ├── given the revoker is the safe
+│   │   └── it revokes the recoverer
+│   │       └── because the call comes from the safe
+│   └── given the revoker is not the safe
+│       └── it fails
+│           └── because the call does not come from the safe
+├── when calling swapRecoverer
+│   ├── given the swapper is the safe
+│   │   └── it swaps the recoverer for the new one
+│   │       └── because the call comes from the safe
+│   └── given the swapper is not the safe
+│       └── it fails
+│           └── because the call does not come from the safe
+├── when calling changeThreshold
+│   ├── given the caller is the safe
+│   │   └── it swaps the recoverer for the new one
+│   │       └── because the call comes from the safe
+│   └── given the caller is not the safe
+│       └── it fails
+│           └── because the call does not come from the safe
+└── when calling recover
+    └── given valid signatures
+        └── it changes the public key owner
+            └── because the recover is authorized by the recoverers

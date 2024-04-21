@@ -9,7 +9,6 @@ import {RSAOwnerManagerMock} from "./mocks/RSAOwnerManager.m.sol";
 import {RSAOwnerManager} from "~/base/RSAOwnerManager.sol";
 import {SafeManager} from "~/base/SafeManager.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import {RSASigner} from "../utils/RSASigner.sol";
 import {Enum} from "@safe/contracts/common/Enum.sol";
 
 contract RSAOwnerManagerTest is BaseTest {
@@ -22,23 +21,27 @@ contract RSAOwnerManagerTest is BaseTest {
         address implementation = Clones.clone(address(new RSAOwnerManagerMock()));
         manager = RSAOwnerManagerMock(implementation);
 
-        RSASigner.PublicKey memory publicKey = owner.publicKey();
-        manager.initialize(publicKey.exponent, publicKey.modulus);
+        RSAOwnerManager.RSAPublicKey memory publicKey = owner.publicKey();
+        manager.initialize(publicKey);
     }
 
     function test_WhenInitialized() external {
-        RSASigner.PublicKey memory ownerPublicKey = owner.publicKey();
+        RSAOwnerManager.RSAPublicKey memory ownerPublicKey = owner.publicKey();
         bytes32 publicKeyId = keccak256(abi.encodePacked(ownerPublicKey.exponent, ownerPublicKey.modulus));
-        assertEq(manager.owner(), publicKeyId);
+        RSAOwnerManager.RSAPublicKey memory managerPublicKey = manager.owner();
+        assertEq(keccak256(abi.encodePacked(managerPublicKey.exponent, managerPublicKey.modulus)), publicKeyId);
         assertEq(manager.nonce(), 0);
     }
 
-    /// @notice it sets the owner because internal function has no access
-    /// control
-    function test_WhenCalling_setOwner(bytes memory exponent, bytes memory modulus, address anyone) external {
+    /// @notice it sets the owner because internal function has no access control
+    function test_WhenCalling_setOwner(RSAOwnerManager.RSAPublicKey memory publicKey, address anyone) external {
         vm.prank(anyone);
-        manager.$_setOwner(exponent, modulus);
-        assertEq(manager.owner(), keccak256(abi.encodePacked(exponent, modulus)));
+        manager.$_setOwner(publicKey);
+        RSAOwnerManager.RSAPublicKey memory ownerPublicKey = manager.owner();
+        assertEq(
+            keccak256(abi.encodePacked(ownerPublicKey.exponent, ownerPublicKey.modulus)),
+            keccak256(abi.encodePacked(publicKey.exponent, publicKey.modulus))
+        );
     }
 
     modifier whenCalling_verifyRSAOwnerWithRawData() {
@@ -55,10 +58,10 @@ contract RSAOwnerManagerTest is BaseTest {
         whenCalling_verifyRSAOwnerWithRawData
         givenAValidSignature
     {
-        RSASigner.PublicKey memory publicKey = owner.publicKey();
+        RSAOwnerManager.RSAPublicKey memory publicKey = owner.publicKey();
 
         bytes memory signature = owner.sign(message);
-        bool result = manager.$_verifyRSAOwner(message, signature, publicKey.exponent, publicKey.modulus);
+        bool result = manager.$_verifyRSAOwner(message, signature, publicKey);
 
         assertTrue(result);
     }
@@ -69,19 +72,19 @@ contract RSAOwnerManagerTest is BaseTest {
         whenCalling_verifyRSAOwnerWithRawData
         givenAValidSignature
     {
-        RSASigner.PublicKey memory publicKey = other.publicKey();
+        RSAOwnerManager.RSAPublicKey memory publicKey = other.publicKey();
 
         bytes memory signature = other.sign(message);
-        bool result = manager.$_verifyRSAOwner(message, signature, publicKey.exponent, publicKey.modulus);
+        bool result = manager.$_verifyRSAOwner(message, signature, publicKey);
 
         assertFalse(result);
     }
 
     /// @notice it returns false because is not authorized
     function test_GivenAnInvalidSignature(bytes memory signature) external whenCalling_verifyRSAOwnerWithRawData {
-        RSASigner.PublicKey memory publicKey = owner.publicKey();
+        RSAOwnerManager.RSAPublicKey memory publicKey = owner.publicKey();
 
-        bool result = manager.$_verifyRSAOwner(bytes("message"), signature, publicKey.exponent, publicKey.modulus);
+        bool result = manager.$_verifyRSAOwner(bytes("message"), signature, publicKey);
 
         assertFalse(result);
     }

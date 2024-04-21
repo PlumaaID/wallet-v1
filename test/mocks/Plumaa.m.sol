@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Plumaa} from "~/Plumaa.sol";
 import {Enum} from "@safe/contracts/common/Enum.sol";
+import {RSAOwnerManager} from "~/base/RSAOwnerManager.sol";
 
 struct TransactionRequest {
     address to;
@@ -33,13 +34,38 @@ contract PlumaaMock is Plumaa {
             );
     }
 
-    /// @notice Unsafely overrides the nonce
-    function unsafeSetNonce(uint32 newNonce) external {
-        _storage().nonce = newNonce;
+    function recoverStructHash(
+        RSAOwnerManager.RSAPublicKey calldata publicKey
+    ) external view returns (bytes32) {
+        return
+            _hashTypedDataV4(
+                keccak256(
+                    abi.encode(
+                        _RECOVERY_REQUEST_TYPEHASH,
+                        publicKey.exponent,
+                        publicKey.modulus
+                    )
+                )
+            );
     }
 
-    /// @notice Get EIP-7201 storage
-    function _storage()
+    /// @notice Unsafely overrides the nonce
+    function unsafeSetNonce(uint32 newNonce) external {
+        _RSAOwnerManagerStorage().nonce = newNonce;
+    }
+
+    /// @notice Unsafely overrides the threshold
+    function unsafeSetThreshold(uint256 newThreshold) external {
+        _changeThreshold(newThreshold);
+    }
+
+    /// @notice Unsafely authorizes a recoverer
+    function unsafeAuthorizeRecoverer(address recoverer) external {
+        _authorizeRecoverer(recoverer, threshold());
+    }
+
+    /// @notice Get RSAOwnerManager EIP-7201 storage
+    function _RSAOwnerManagerStorage()
         private
         pure
         returns (RSAOwnerManagerStorage storage $)

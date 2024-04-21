@@ -4,15 +4,18 @@ pragma solidity ^0.8.20;
 import {Safe} from "@safe/contracts/Safe.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import {Plumaa} from "./Plumaa.sol";
+import {Plumaa, RSAOwnerManager} from "./Plumaa.sol";
 
 contract PlumaaFactory {
     address private immutable __self;
 
+    /// @dev Reverts if called directly.
+    error PlumaaFactoryOnlyDelegateCall();
+
     /// @notice Modifier to make a function callable via delegatecall only.
     /// If the function is called via a regular call, it will revert.
     modifier onlyDelegateCall() {
-        require(address(this) != __self);
+        if (msg.sender == __self) revert PlumaaFactoryOnlyDelegateCall();
         _;
     }
 
@@ -24,14 +27,23 @@ contract PlumaaFactory {
     function predictDeterministicAddress(
         address beacon,
         bytes32 salt,
-        bytes memory exponent,
-        bytes memory modulus,
-        Safe safe
+        RSAOwnerManager.RSAPublicKey memory owner,
+        Safe safe,
+        uint256 recoveryThreshold,
+        address[] calldata authorizedRecoverers
     ) public pure returns (address) {
         return
             Create2.computeAddress(
                 salt,
-                keccak256(_proxyCreationCode(beacon, exponent, modulus, safe)),
+                keccak256(
+                    _proxyCreationCode(
+                        beacon,
+                        owner,
+                        safe,
+                        recoveryThreshold,
+                        authorizedRecoverers
+                    )
+                ),
                 address(safe)
             );
     }
@@ -42,24 +54,33 @@ contract PlumaaFactory {
     function safeSetup(
         address beacon,
         bytes32 salt,
-        bytes memory exponent,
-        bytes memory modulus
+        RSAOwnerManager.RSAPublicKey memory owner,
+        uint256 recoveryThreshold,
+        address[] calldata authorizedRecoverers
     ) public onlyDelegateCall {
         Safe safe = Safe(payable(address(this)));
         address clone = Create2.deploy(
             0,
             salt,
-            _proxyCreationCode(beacon, exponent, modulus, safe)
+            _proxyCreationCode(
+                beacon,
+                owner,
+                safe,
+                recoveryThreshold,
+                authorizedRecoverers
+            )
         );
         safe.enableModule(clone);
+        // safe.swapOwner(prevOwner, oldOwner, newOwner);
     }
 
     /// @notice Returns the creation code with arguments of a new beacon proxy.
     function _proxyCreationCode(
         address beacon,
-        bytes memory exponent,
-        bytes memory modulus,
-        Safe safe
+        RSAOwnerManager.RSAPublicKey memory owner,
+        Safe safe,
+        uint256 recoveryThreshold,
+        address[] calldata authorizedRecoverers
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(
@@ -68,7 +89,7 @@ contract PlumaaFactory {
                     beacon,
                     abi.encodeCall(
                         Plumaa.setupPlumaa,
-                        (exponent, modulus, safe)
+                        (owner, safe, recoveryThreshold, authorizedRecoverers)
                     )
                 )
             );
